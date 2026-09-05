@@ -1,0 +1,7 @@
+CREATE OR REPLACE VIEW `__DATASET__.vw_contas_receber` AS
+SELECT
+  DATE_TRUNC(`__DATASET__`.pm_date(__COL_DATA__), MONTH) AS mes,
+  SUM(`__DATASET__`.pm_num(__COL_VALOR__)) AS recebido
+FROM `__DATASET__.CAI_CONTA_RECEBER_BAIXA_PGTO`
+WHERE `__DATASET__`.pm_date(__COL_DATA__) IS NOT NULL
+GROUP BY mes ORDER BY mes;

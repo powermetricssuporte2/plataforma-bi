@@ -1,0 +1,4 @@
+google-cloud-bigquery>=3.25
+google-api-python-client>=2.140
+google-auth>=2.30
+pyyaml>=6.0

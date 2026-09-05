@@ -1,0 +1,10 @@
+const { validateSql, enforceLimit } = require("./guardrails");
+const P = "proj", D = "cli";
+const ok = validateSql("SELECT * FROM `proj.cli.vw_vendas_pdv`", P, D);
+console.assert(ok === null, "select válido rejeitado: " + ok);
+console.assert(validateSql("DELETE FROM x", P, D) !== null, "DELETE passou!");
+console.assert(validateSql("SELECT 1; DROP TABLE x", P, D) !== null, "encadeado passou!");
+console.assert(validateSql("SELECT * FROM `proj.outro.t`", P, D) !== null, "dataset alheio passou!");
+console.assert(enforceLimit("SELECT 1").endsWith("LIMIT 500"), "limit não aplicado");
+console.assert(enforceLimit("SELECT 1 LIMIT 10").endsWith("LIMIT 10"), "limit sobrescrito");
+console.log("guardrails: 6/6 OK");

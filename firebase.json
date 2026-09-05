@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "public": "app/dist",
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/**", "function": "api" },
+      { "source": "/ask", "function": "ask" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  },
+  "functions": [
+    { "source": "functions/api", "codebase": "api", "runtime": "nodejs20" },
+    { "source": "functions/ask", "codebase": "ask", "runtime": "nodejs20" }
+  ]
+}

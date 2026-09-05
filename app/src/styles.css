@@ -1,0 +1,104 @@
+/* Tokens — derivados da marca PowerMetrics (#F58434 / #282829), não de um template.
+   Interface escura construída sobre o próprio carvão da marca; laranja é o único acento. */
+:root {
+  --ink-0: #1b1b1c;      /* fundo base (carvão aprofundado) */
+  --ink-1: #282829;      /* painéis (cor da marca) */
+  --ink-2: #343436;      /* superfícies elevadas / hover */
+  --line:  #3d3d40;
+  --text:  #ececea;
+  --text-2:#a5a5a1;
+  --brand: #F58434;      /* acento único */
+  --brand-soft: rgba(245,132,52,.14);
+  --data-2:#e0bd6a;      /* âmbar — série secundária */
+  --data-3:#7fa6a3;      /* verde-acinzentado — série terciária */
+  --bad:   #e06a5a;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--ink-0); color: var(--text);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 15px; line-height: 1.45;
+}
+a { color: inherit; text-decoration: none; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; font-stretch: 105%; }
+.muted { color: var(--text-2); font-size: 13px; }
+
+/* Shell: trilho lateral no desktop, barra inferior no mobile */
+.shell { display: grid; grid-template-columns: 200px 1fr; min-height: 100%; }
+.rail {
+  background: var(--ink-1); border-right: 1px solid var(--line);
+  padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.logo { font-weight: 800; font-stretch: 115%; font-size: 17px; padding: 0 10px 18px; }
+.logo em { color: var(--brand); font-style: normal; }
+.rail a {
+  padding: 9px 10px; border-radius: 8px; color: var(--text-2); font-weight: 500;
+}
+.rail a.on { background: var(--brand-soft); color: var(--brand); }
+.rail a:hover { color: var(--text); }
+.rail .sair { margin-top: auto; cursor: pointer; }
+main { padding: 22px clamp(14px, 3vw, 34px); max-width: 1100px; width: 100%; }
+.topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+
+/* Frescor do dado — o selo que diferencia do Power BI parado */
+.fresh { font-size: 12.5px; color: var(--text-2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; }
+.fresh b { color: var(--text); font-weight: 600; }
+.fresh.velho { border-color: var(--bad); color: var(--bad); }
+
+/* Alerta de ingestão */
+.alerta { background: rgba(224,106,90,.12); border: 1px solid var(--bad);
+  color: #f2b3aa; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; font-size: 13.5px; }
+
+/* KPIs: o número é o display, não um card decorado */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.kpi { background: var(--ink-1); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px 12px; }
+.kpi .valor { font-size: clamp(24px, 3vw, 32px); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.kpi .rotulo { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+.kpi .delta { font-size: 12.5px; margin-top: 6px; }
+.kpi .delta.up { color: var(--brand); }
+.kpi .delta.down { color: var(--bad); }
+
+.painel { background: var(--ink-1); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 16px; }
+.painel h2 { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--text-2); }
+
+table.dados { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dados th { text-align: left; color: var(--text-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.dados td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+table.dados tr:last-child td { border-bottom: 0; }
+
+/* Login */
+.login { min-height: 100%; display: grid; place-items: center; padding: 20px; }
+.login form { width: min(360px, 100%); background: var(--ink-1); border: 1px solid var(--line);
+  border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
+.login .logo { padding: 0 0 6px; font-size: 22px; }
+input, button, textarea {
+  font: inherit; color: var(--text); background: var(--ink-0);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+}
+input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+button.cta { background: var(--brand); border-color: var(--brand); color: #1b1b1c; font-weight: 700; cursor: pointer; }
+button.cta:disabled { opacity: .6; cursor: wait; }
+.erro { color: var(--bad); font-size: 13px; }
+
+/* Chat IA */
+.chat { display: flex; flex-direction: column; gap: 12px; }
+.chat .pergunta { display: flex; gap: 8px; }
+.chat .pergunta input { flex: 1; }
+.resposta-sql { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-2);
+  background: var(--ink-0); border-radius: 8px; padding: 8px 10px; overflow-x: auto; }
+
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { flex-direction: row; align-items: center; position: sticky; bottom: 0; top: auto;
+    order: 2; border-right: 0; border-top: 1px solid var(--line); padding: 8px 10px; overflow-x: auto; }
+  .logo { display: none; }
+  .rail .sair { margin-top: 0; margin-left: auto; }
+  main { order: 1; padding-bottom: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kpi .valor { transition: opacity .2s; }
+}

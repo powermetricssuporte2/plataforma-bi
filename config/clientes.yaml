@@ -1,0 +1,22 @@
+# Cliente novo = adicionar bloco aqui + compartilhar a pasta do Drive com a service account
+clientes:
+  - id: integracao_modas
+    nome: "Integração Modas"
+    drive_folder_id: "140lJk2HJNeLWhtQavVnb9cIKkBqBd0ii"
+    ativo: true
+  - id: dinamica_metal
+    nome: "Dinâmica Metal"
+    drive_folder_id: "1h6ynltfZk5xCqRwiGF5MIZZH4_YYtoTb"
+    ativo: false
+  - id: visaseg
+    nome: "Visaseg"
+    drive_folder_id: "1lydoTqoibu5qS3fOtFHKiS9bNNMk5GMX"
+    ativo: false
+  - id: equittec
+    nome: "Equittec"
+    drive_folder_id: "19p5jes__A0BJ_WbY1B2Wo55xjvherXkt"
+    ativo: false
+  - id: inspirare
+    nome: "Inspirare"
+    drive_folder_id: "1iNK5LEbfmcfzubMxxMi6WqMflAaUdmcF"
+    ativo: false
