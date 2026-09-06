@@ -32,8 +32,9 @@ CANDIDATOS = {
         "__COL_PROD_NOME__":("EST_PRODUTO", ["PRO_NOME", "PRO_DESCRICAO", "PRO_DESC"]),
     },
     "vw_contas_pagar": {
-        "__COL_VENC__":  ("CAI_CONTA_PAGAR_EX", ["CPG_DATA_VENCIMENTO", "CPG_VENCIMENTO", "DATA_VENCIMENTO"]),
-        "__COL_VALOR__": ("CAI_CONTA_PAGAR_EX", ["CPG_VALOR", "VALOR"]),
+        # este ERP não guarda vencimento em CAI_CONTA_PAGAR_EX; usa emissão como aproximação
+        "__COL_VENC__":  ("CAI_CONTA_PAGAR_EX", ["CPG_DATA_VENCIMENTO", "CPG_VENCIMENTO", "DATA_VENCIMENTO", "CNP_DATA_EMISSAO"]),
+        "__COL_VALOR__": ("CAI_CONTA_PAGAR_EX", ["CPG_VALOR", "CNP_VALOR", "VALOR"]),
     },
     "vw_contas_receber": {
         "__COL_DATA__":  ("CAI_CONTA_RECEBER_BAIXA_PGTO", ["CRB_DATA_PAGAMENTO", "CRB_DATA", "DATA_PAGAMENTO"]),
@@ -41,7 +42,7 @@ CANDIDATOS = {
     },
     "vw_estoque_posicao": {
         "__COL_PROD_ID__":  ("EST_ALMOXARIFADO_PRODUTO", ["ALP_PRO_CODIGO", "PRO_CODIGO"]),
-        "__COL_SALDO__":    ("EST_ALMOXARIFADO_PRODUTO", ["ALP_SALDO", "ALP_QUANTIDADE", "SALDO"]),
+        "__COL_SALDO__":    ("EST_ALMOXARIFADO_PRODUTO", ["ALP_SALDO", "ALP_QUANTIDADE", "SALDO", "ALP_EST_ATUAL"]),
         "__COL_PROD_PK__":  ("EST_PRODUTO", ["PRO_CODIGO", "PRO_ID"]),
         "__COL_PROD_GRUPO__":("EST_PRODUTO", ["PRO_GRU_CODIGO", "GRU_CODIGO", "PRO_GRUPO"]),
         "__COL_GRUPO_PK__": ("EST_GRUPO", ["GRU_CODIGO", "GRU_ID"]),

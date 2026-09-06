@@ -21,21 +21,28 @@ async function schemaDoCliente(ds) {
 }
 
 exports.ask = onRequest(
-  { region: "southamerica-east1", cors: true, secrets: ["anthropic-api-key"], timeoutSeconds: 60 },
+  { region: "southamerica-east1", cors: true, secrets: ["ANTHROPIC_API_KEY"], timeoutSeconds: 60 },
   async (req, res) => {
     try {
       const h = req.headers.authorization || "";
       const decoded = await admin.auth().verifyIdToken(h.replace("Bearer ", ""));
-      const ds = decoded.cliente_id;
-      if (!ds || !/^[a-z0-9_]+$/.test(ds)) return res.status(401).json({ erro: "usuário sem cliente_id" });
+      const permitidos = [...new Set([...(Array.isArray(decoded.clientes) ? decoded.clientes : []),
+                                      ...(decoded.cliente_id ? [decoded.cliente_id] : [])])]
+        .filter((c) => /^[a-z0-9_]+$/.test(c));
+      if (!permitidos.length) return res.status(401).json({ erro: "usuário sem cliente_id" });
+      const pedido = String(req.body?.cliente || "");
+      if (pedido && !permitidos.includes(pedido)) return res.status(401).json({ erro: "cliente_id não autorizado" });
+      const ds = pedido || permitidos[0];
 
       const pergunta = String(req.body?.pergunta || "").slice(0, 500);
       if (!pergunta) return res.status(400).json({ erro: "pergunta vazia" });
 
-      const client = new Anthropic({ apiKey: process.env["anthropic-api-key"] });
+      // .trim(): secret criado via pipe costuma trazer quebra de linha no fim,
+      // que o header HTTP rejeita.
+      const client = new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY || "").trim() });
       const schema = await schemaDoCliente(ds);
       const msg = await client.messages.create({
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5",
         max_tokens: 800,
         system: `Você gera SQL BigQuery para um dashboard. Views disponíveis no dataset \`${PROJECT}.${ds}\`:
 ${schema}
@@ -61,7 +68,13 @@ P: vendas por dia no último mês -> {"sql":"SELECT dia, receita FROM \`${PROJEC
       });
       res.json({ titulo: plano.titulo, tipo_grafico: plano.tipo_grafico, sql: plano.sql, linhas: rows });
     } catch (e) {
-      res.status(500).json({ erro: String(e.message || e) });
+      console.error("falha em /ask", { nome: e.name, mensagem: e.message });
+      const cru = String(e.message || e);
+      // Erro de credencial é problema de configuração, não da pergunta do usuário.
+      const erro = e.status === 401 || /authentication_error|API key/i.test(cru)
+        ? "A chave da IA está inválida ou expirada. Configure o secret ANTHROPIC_API_KEY."
+        : cru;
+      res.status(500).json({ erro });
     }
   }
 );

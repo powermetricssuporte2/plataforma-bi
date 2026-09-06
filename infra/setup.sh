@@ -20,8 +20,8 @@ for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser; do
 done
 
 echo ">> Secret da API Anthropic (cole a chave e Enter, Ctrl+D):"
-gcloud secrets create anthropic-api-key --project "$PROJECT" --data-file=- 2>/dev/null || \
-  echo "   (secret já existe — para trocar: gcloud secrets versions add anthropic-api-key --data-file=-)"
+gcloud secrets create ANTHROPIC_API_KEY --project "$PROJECT" --data-file=- 2>/dev/null || \
+  echo "   (secret já existe — para trocar: gcloud secrets versions add ANTHROPIC_API_KEY --data-file=-)"
 
 echo ">> Datasets BigQuery..."
 python3 - << PYEOF

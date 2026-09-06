@@ -26,24 +26,45 @@ const QUERIES = {
   estoque:    (ds) => `SELECT grupo, itens, saldo FROM \`${PROJECT}.${ds}.vw_estoque_posicao\` LIMIT 20`,
   freshness:  (ds) => `SELECT MAX(finished_at) ultima FROM \`${PROJECT}._meta.ingest_log\`
                        WHERE cliente = '${ds}' AND status = 'OK'`,
+  // Só alerta ainda pendente: se houve carga OK depois dele, a falha já foi superada.
   alerts:     (ds) => `SELECT mensagem, criado_em FROM \`${PROJECT}._meta.alerts\`
                        WHERE cliente = '${ds}' AND criado_em > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 26 HOUR)
+                         AND criado_em > COALESCE((SELECT MAX(finished_at) FROM \`${PROJECT}._meta.ingest_log\`
+                                                   WHERE cliente = '${ds}' AND status = 'OK'), TIMESTAMP('1970-01-01'))
                        ORDER BY criado_em DESC LIMIT 5`,
 };
+
+// O usuário pode ter acesso a vários clientes; `?cliente=` escolhe qual, sempre
+// validado contra a lista do token — nunca contra o que o navegador afirma.
+function clientesDoToken(decoded) {
+  const lista = Array.isArray(decoded.clientes) ? decoded.clientes : [];
+  if (decoded.cliente_id) lista.push(decoded.cliente_id);
+  return [...new Set(lista)].filter((c) => /^[a-z0-9_]+$/.test(c));
+}
 
 async function auth(req) {
   const h = req.headers.authorization || "";
   if (!h.startsWith("Bearer ")) throw new Error("sem token");
   const decoded = await admin.auth().verifyIdToken(h.slice(7));
-  const cliente = decoded.cliente_id;
-  if (!cliente || !/^[a-z0-9_]+$/.test(cliente)) throw new Error("usuário sem cliente_id");
-  return cliente;
+  const permitidos = clientesDoToken(decoded);
+  if (!permitidos.length) throw new Error("usuário sem cliente_id");
+  const pedido = String(req.query?.cliente || "");
+  if (pedido && !permitidos.includes(pedido)) throw new Error("cliente_id não autorizado");
+  return { cliente: pedido || permitidos[0], permitidos };
 }
 
 exports.api = onRequest({ region: "southamerica-east1", cors: true }, async (req, res) => {
   try {
-    const cliente = await auth(req);
+    const { cliente, permitidos } = await auth(req);
     const endpoint = (req.path || "/").replace(/^\/api\//, "").replace(/^\//, "");
+    if (endpoint === "clientes") {
+      const [nomes] = await bq.query({
+        query: `SELECT id, nome FROM \`${PROJECT}._meta.clientes\` WHERE id IN UNNEST(@ids)`,
+        params: { ids: permitidos },
+      });
+      const mapa = Object.fromEntries(nomes.map((r) => [r.id, r.nome]));
+      return res.json(permitidos.map((id) => ({ id, nome: mapa[id] || id })));
+    }
     const q = QUERIES[endpoint];
     if (!q) return res.status(404).json({ erro: `endpoint desconhecido: ${endpoint}` });
     const [rows] = await bq.query({ query: q(cliente), maximumBytesBilled: "1073741824" });

@@ -5,5 +5,5 @@ SELECT
   SUM(`__DATASET__`.pm_num(vp.__COL_VP_VALOR__)) AS receita,
   SUM(`__DATASET__`.pm_num(vp.__COL_VP_QTD__)) AS quantidade
 FROM `__DATASET__.FCX_VENDA_PRODUTO` vp
-LEFT JOIN `__DATASET__.EST_PRODUTO` p ON p.__COL_PROD_PK__ = vp.__COL_PROD_ID__
+LEFT JOIN `__DATASET__.EST_PRODUTO` p ON CAST(p.__COL_PROD_PK__ AS STRING) = CAST(vp.__COL_PROD_ID__ AS STRING)
 GROUP BY produto_id ORDER BY receita DESC LIMIT 100;

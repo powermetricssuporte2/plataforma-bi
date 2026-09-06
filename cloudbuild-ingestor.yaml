@@ -1,0 +1,5 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'ingestor/Dockerfile', '-t', 'southamerica-east1-docker.pkg.dev/powermetrics-bi/cloud-run-source-deploy/bi-ingestor', '.']
+images:
+  - 'southamerica-east1-docker.pkg.dev/powermetrics-bi/cloud-run-source-deploy/bi-ingestor'

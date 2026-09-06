@@ -23,6 +23,7 @@ def drive_service():
 def run_cliente(loader: BQLoader, svc, cliente: dict) -> bool:
     cid, folder = cliente["id"], cliente["drive_folder_id"]
     loader.bq.create_dataset(f"{loader.project}.{cid}", exists_ok=True)
+    loader.registrar_cliente(cid, cliente.get("nome", cid))
     src = DriveCSVSource(folder, svc)
     refs = src.list_tables()
     print(f"[{cid}] {len(refs)} tabelas na whitelist encontradas no Drive")

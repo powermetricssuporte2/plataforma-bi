@@ -1,16 +1,39 @@
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 
-const cor = { brand: "#F58434", d2: "#e0bd6a", d3: "#7fa6a3", grade: "#3d3d40", texto: "#a5a5a1" };
 const fmtBRL = (v) => Number(v).toLocaleString("pt-BR", { notation: "compact" });
-const tt = {
-  contentStyle: { background: "#282829", border: "1px solid #3d3d40", borderRadius: 8, color: "#ececea" },
+
+// Recharts recebe cor literal, não var(); lê os tokens do tema ativo e reage à troca.
+function useCores() {
+  const ler = () => {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n) => s.getPropertyValue(n).trim();
+    return {
+      brand: v("--brand"), d2: v("--data-2"), d3: v("--data-3"),
+      grade: v("--line"), texto: v("--text-2"),
+      painel: v("--ink-1"), tinta: v("--text"), brandSoft: v("--brand-soft"),
+    };
+  };
+  const [cor, setCor] = useState(ler);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setCor(ler()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema"] });
+    return () => obs.disconnect();
+  }, []);
+  return cor;
+}
+
+const tooltip = (cor) => ({
+  contentStyle: { background: cor.painel, border: `1px solid ${cor.grade}`, borderRadius: 8, color: cor.tinta },
   formatter: (v) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-};
+});
 
 export function Linha({ data, x, y, altura = 260 }) {
+  const cor = useCores();
+  const tt = tooltip(cor);
   return (
     <ResponsiveContainer width="100%" height={altura}>
       <LineChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
@@ -25,6 +48,8 @@ export function Linha({ data, x, y, altura = 260 }) {
 }
 
 export function Barras({ data, x, ys, altura = 260, horizontal = false }) {
+  const cor = useCores();
+  const tt = tooltip(cor);
   const paleta = [cor.brand, cor.d2, cor.d3];
   return (
     <ResponsiveContainer width="100%" height={altura}>
@@ -34,7 +59,8 @@ export function Barras({ data, x, ys, altura = 260, horizontal = false }) {
         {horizontal ? (
           <>
             <XAxis type="number" stroke={cor.texto} tickLine={false} fontSize={12} tickFormatter={fmtBRL} />
-            <YAxis type="category" dataKey={x} stroke={cor.texto} tickLine={false} fontSize={12} width={120} />
+            <YAxis type="category" dataKey={x} stroke={cor.texto} tickLine={false} fontSize={12}
+              width={120} interval={0} />
           </>
         ) : (
           <>
@@ -42,7 +68,7 @@ export function Barras({ data, x, ys, altura = 260, horizontal = false }) {
             <YAxis stroke={cor.texto} tickLine={false} fontSize={12} tickFormatter={fmtBRL} />
           </>
         )}
-        <Tooltip {...tt} cursor={{ fill: "rgba(245,132,52,.08)" }} />
+        <Tooltip {...tt} cursor={{ fill: cor.brandSoft }} />
         {ys.map((y, i) => <Bar key={y} dataKey={y} fill={paleta[i % 3]} radius={[3, 3, 0, 0]} />)}
       </BarChart>
     </ResponsiveContainer>

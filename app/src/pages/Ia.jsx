@@ -53,13 +53,16 @@ export default function Ia() {
       {erro && <div className="alerta">{erro}</div>}
       {resp && (
         <Painel titulo={resp.titulo}>
+          {resp.linhas.length === 0 && (
+            <p className="muted">Nenhum resultado para essa pergunta no período consultado.</p>
+          )}
           {resp.tipo_grafico === "linha" && cols.length >= 2 && (
             <Linha data={resp.linhas} x={cols[0]} y={cols[1]} />
           )}
           {resp.tipo_grafico === "barras" && cols.length >= 2 && (
             <Barras data={resp.linhas} x={cols[0]} ys={[cols[1]]} horizontal altura={360} />
           )}
-          {(resp.tipo_grafico === "tabela" || cols.length < 2) && (
+          {resp.linhas.length > 0 && (resp.tipo_grafico === "tabela" || cols.length < 2) && (
             <table className="dados">
               <thead><tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
               <tbody>

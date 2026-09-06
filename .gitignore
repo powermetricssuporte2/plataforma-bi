@@ -6,3 +6,4 @@ __pycache__/
 .venv/
 service-account.json
 .firebase/
+DECISOES.md
