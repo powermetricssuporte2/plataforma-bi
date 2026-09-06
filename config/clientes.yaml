@@ -1,22 +1,112 @@
-# Cliente novo = adicionar bloco aqui + compartilhar a pasta do Drive com a service account
+# Cliente novo = adicionar bloco aqui + compartilhar a pasta do Drive com a
+# service account (bi-ingestor@<projeto>.iam.gserviceaccount.com, papel Leitor).
+# Os drive_folder_id vieram das pastas Dados_Bi reais em "Empresas" no Drive.
 clientes:
+  # A pasta no Drive e "Adriane Modas"; o id ficou "integracao_modas" desde o
+  # piloto e e o que esta gravado no token dos usuarios — renomear derruba o login.
   - id: integracao_modas
-    nome: "Integração Modas"
+    nome: "Adriane Modas"
     drive_folder_id: "140lJk2HJNeLWhtQavVnb9cIKkBqBd0ii"
     ativo: true
-  - id: dinamica_metal
-    nome: "Dinâmica Metal"
+  - id: angab
+    nome: "Angab"
+    drive_folder_id: "1I06EpqHOhlVWRAWDxpXaAMwXr8b3tP8W"
+    ativo: true
+  - id: armazem_do_tapette
+    nome: "Armazém do Tapette"
+    drive_folder_id: "1O--pBwSQJWdczJ1QB55gI7azWEm4_TnZ"
+    ativo: true
+  - id: carbomarau
+    nome: "Carbomarau"
+    drive_folder_id: "1dmtM4pAdyfCI075gz3rXXLOkSW06Q-3h"
+    ativo: true
+  - id: fusometal
+    nome: "Fusometal"
+    drive_folder_id: "1s0RMtrR0-ICHD6b5rEMFAFw2fczSpsre"
+    ativo: true
+  - id: desinsetizadora_marauense
+    nome: "Desinsetizadora Marauense"
+    drive_folder_id: "1PFiGR4jD11MH3EfkB2pUTOS5ZiFYDiFm"
+    ativo: true
+  - id: desenvol_uniao
+    nome: "Desenvol. União"
+    drive_folder_id: "1_8HdTvu5C_47ohjE8kAx-L_cv1Ydzs9K"
+    ativo: true
+  - id: dinamica
+    nome: "Dinâmica"
     drive_folder_id: "1h6ynltfZk5xCqRwiGF5MIZZH4_YYtoTb"
-    ativo: false
-  - id: visaseg
-    nome: "Visaseg"
-    drive_folder_id: "1lydoTqoibu5qS3fOtFHKiS9bNNMk5GMX"
-    ativo: false
+    ativo: true
+  - id: dos_amigos
+    nome: "Dos Amigos"
+    drive_folder_id: "15BjEccWsHy1ydj9FhrdxLaWOYMg-2p3r"
+    ativo: true
   - id: equittec
     nome: "Equittec"
+    drive_folder_id: "1SYAdF083Y_dSCu-5SDvXyY0krn1Kwrr1"
+    ativo: true
+  - id: megavett
+    nome: "Megavett"
     drive_folder_id: "19p5jes__A0BJ_WbY1B2Wo55xjvherXkt"
-    ativo: false
-  - id: inspirare
-    nome: "Inspirare"
+    ativo: true
+  - id: suiteec
+    nome: "Suiteec"
+    drive_folder_id: "15My8uG0I9Xep8k81piHxLr8UmRg7rp-Z"
+    ativo: true
+  - id: forte_autocenter
+    nome: "Forte Autocenter"
+    drive_folder_id: "1o6zEhXg52lgcpJ_er1xpCaRNjugiVspG"
+    ativo: true
+  - id: fpm_ferramentas
+    nome: "FPM Ferramentas"
+    drive_folder_id: "1E9KGj9zhvbsIcrRNnL_HbJpGX9p3bczf"
+    ativo: true
+  - id: inspirare_inox
+    nome: "Inspirare Inox"
     drive_folder_id: "1iNK5LEbfmcfzubMxxMi6WqMflAaUdmcF"
+    ativo: true
+  - id: katagiri
+    nome: "Katagiri"
+    drive_folder_id: "1DrcaLDnA_CS3q11RqX7FWIS8rDXY92i_"
+    ativo: true
+  - id: modart
+    nome: "Modart"
+    drive_folder_id: "1r4A4xjozbyJbaCpJPvcW4Q9t8SUg7Hms"
+    ativo: true
+  - id: ponto_zero
+    nome: "Ponto Zero"
+    drive_folder_id: "1cWLnOPeRJPNFSDBNdyly-eS6-RfraK9S"
+    ativo: true
+  - id: ponto_zero_aft
+    nome: "Ponto Zero — AFT"
+    drive_folder_id: "1DXSDQ67s8QCvXLLinr4ipZlj0pH-UP-7"
+    ativo: true
+  - id: r1_fashion
+    nome: "R1 Fashion"
+    drive_folder_id: "1RfOeY8jPKZiNljaxo6DoFjpfY4VmcGoE"
+    ativo: true
+  - id: somar
+    nome: "SOMAR"
+    drive_folder_id: "18ETk51nRC95gfmkgBR-AJaj9sK5dIY-L"
+    ativo: true
+  - id: uniao_colonial
+    nome: "União Colonial"
+    drive_folder_id: "1OF7ffTB16dV1aICuxcCgN-AJgsb19W3w"
+    ativo: true
+  - id: vagalume
+    nome: "Vagalume"
+    drive_folder_id: "1WpUzahA22EcCIqWiQ2jA0yX6Bt5hExfY"
+    ativo: true
+  - id: visaseg
+    nome: "VisaSeg"
+    drive_folder_id: "1lydoTqoibu5qS3fOtFHKiS9bNNMk5GMX"
+    ativo: true
+
+  # Inativas no Drive — ligar apenas se voltarem a ser atendidas.
+  - id: hidrolux
+    nome: "Hidrolux (inativa)"
+    drive_folder_id: "1pAC3kROEbG260Ydyjf-JVitGoEh1BCwP"
+    ativo: false
+  - id: rulifer
+    nome: "Rulifer (inativa)"
+    drive_folder_id: "1Qcj3aPpkkrAT-qvegGCvU00E2whOgqSl"
     ativo: false

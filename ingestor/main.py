@@ -22,10 +22,26 @@ def drive_service():
 
 def run_cliente(loader: BQLoader, svc, cliente: dict) -> bool:
     cid, folder = cliente["id"], cliente["drive_folder_id"]
-    loader.bq.create_dataset(f"{loader.project}.{cid}", exists_ok=True)
-    loader.registrar_cliente(cid, cliente.get("nome", cid))
-    src = DriveCSVSource(folder, svc)
-    refs = src.list_tables()
+    # Pasta nao compartilhada ou dataset indisponivel nao pode derrubar os demais
+    # clientes do mesmo run: registra o erro e segue para o proximo.
+    try:
+        # Confere o acesso ao Drive antes de criar dataset: cliente sem
+        # compartilhamento nao deve deixar dataset vazio nem aparecer no seletor.
+        src = DriveCSVSource(folder, svc)
+        refs = src.list_tables()
+        # A API do Drive nao acusa erro quando a service account nao enxerga a
+        # pasta: devolve lista vazia. Sem isto o cliente ficaria silenciosamente
+        # sem dados, parecendo que rodou bem.
+        if not refs:
+            raise RuntimeError(
+                "nenhuma tabela visivel — compartilhe a pasta com a service account (Leitor)")
+        loader.bq.create_dataset(f"{loader.project}.{cid}", exists_ok=True)
+        loader.registrar_cliente(cid, cliente.get("nome", cid))
+    except Exception as e:
+        loader.log(new_run_id(), cid, "-", "ERRO", 0, f"acesso ao cliente: {e}", now_iso())
+        loader.alert(cid, f"Sem acesso a pasta do Drive ({folder}): {e}")
+        print(f"[{cid}] ERRO de acesso: {e}", file=sys.stderr)
+        return False
     print(f"[{cid}] {len(refs)} tabelas na whitelist encontradas no Drive")
     ok = True
     for ref in refs:
@@ -61,7 +77,8 @@ def main():
     loader = BQLoader(PROJECT)
     loader.ensure_meta()
     svc = drive_service()
-    all_ok = all([run_cliente(loader, svc, c) for c in clientes])
+    resultados = [run_cliente(loader, svc, c) for c in clientes]
+    all_ok = all(resultados)
     sys.exit(0 if all_ok else 1)
 
 
