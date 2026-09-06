@@ -20,3 +20,7 @@ deploy:           ## Deploy completo (job + scheduler + functions + hosting)
 
 user:             ## Cria usuário: make user EMAIL=x SENHA=y CLIENTE=a,b (aceita vários)
 	GCP_PROJECT_ID=$(PROJECT) node scripts/create_user.js $(EMAIL) $(SENHA) $(CLIENTE)
+
+hosting:          ## Publica so o app (contorna sessao expirada do firebase-tools)
+	cd app && npm run build
+	GCLOUD_TOKEN="$$(gcloud auth print-access-token)" python3 infra/deploy_hosting.py

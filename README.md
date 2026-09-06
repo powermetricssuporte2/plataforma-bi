@@ -19,7 +19,11 @@ Em produção: **https://powermetrics-bi.web.app** (projeto GCP `powermetrics-bi
 
 ## Comandos
 `make setup` · `make ingest-piloto` · `make views` · `make deploy` · `make test` ·
-`make user EMAIL=x SENHA=y CLIENTE=a,b`
+`make user EMAIL=x SENHA=y CLIENTE=a,b` · `make hosting`
+
+`make hosting` publica so o app pela API REST do Hosting, usando o token do
+gcloud. Serve quando a sessao do firebase-tools expira (`firebase login --reauth`)
+mas a do gcloud continua valida.
 
 ## Multi-cliente
 Cada cliente é um dataset isolado no BigQuery. O usuário carrega no token a lista
