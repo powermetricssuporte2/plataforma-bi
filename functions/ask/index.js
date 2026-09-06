@@ -70,7 +70,9 @@ P: vendas por dia no último mês -> {"sql":"SELECT dia, receita FROM \`${PROJEC
     } catch (e) {
       console.error("falha em /ask", { nome: e.name, mensagem: e.message });
       const cru = String(e.message || e);
-      // Erro de credencial é problema de configuração, não da pergunta do usuário.
+      // Token ausente/inválido é 401 do chamador, não falha do servidor.
+      if (/ID token|Decoding Firebase/i.test(cru)) return res.status(401).json({ erro: "sem token válido" });
+      // Erro de credencial da IA é problema de configuração, não da pergunta.
       const erro = e.status === 401 || /authentication_error|API key/i.test(cru)
         ? "A chave da IA está inválida ou expirada. Configure o secret ANTHROPIC_API_KEY."
         : cru;

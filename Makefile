@@ -18,5 +18,5 @@ test:             ## Testes unitários do ingestor
 deploy:           ## Deploy completo (job + scheduler + functions + hosting)
 	bash infra/deploy.sh
 
-user:             ## Cria usuário: make user EMAIL=x SENHA=y CLIENTE=integracao_modas
-	node scripts/create_user.js $(EMAIL) $(SENHA) $(CLIENTE)
+user:             ## Cria usuário: make user EMAIL=x SENHA=y CLIENTE=a,b (aceita vários)
+	GCP_PROJECT_ID=$(PROJECT) node scripts/create_user.js $(EMAIL) $(SENHA) $(CLIENTE)

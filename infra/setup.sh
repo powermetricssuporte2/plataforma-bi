@@ -9,7 +9,7 @@ SA_EMAIL="${SA_NAME}@${PROJECT}.iam.gserviceaccount.com"
 echo ">> Habilitando APIs..."
 gcloud services enable drive.googleapis.com bigquery.googleapis.com run.googleapis.com \
   cloudscheduler.googleapis.com secretmanager.googleapis.com cloudfunctions.googleapis.com \
-  cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$PROJECT"
+  cloudbuild.googleapis.com artifactregistry.googleapis.com firebase.googleapis.com   identitytoolkit.googleapis.com --project "$PROJECT"
 
 echo ">> Service account..."
 gcloud iam service-accounts create "$SA_NAME" --project "$PROJECT" \
@@ -17,6 +17,17 @@ gcloud iam service-accounts create "$SA_NAME" --project "$PROJECT" \
 for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser; do
   gcloud projects add-iam-policy-binding "$PROJECT" \
     --member "serviceAccount:$SA_EMAIL" --role "$ROLE" --quiet >/dev/null
+done
+
+echo ">> Permissoes das contas padrao (Cloud Build e Functions)..."
+NUM=$(gcloud projects describe "$PROJECT" --format="value(projectNumber)")
+COMPUTE="${NUM}-compute@developer.gserviceaccount.com"
+# O Cloud Build roda como a SA de compute: precisa ler o fonte e publicar a imagem.
+# As Functions usam a mesma SA e consultam o BigQuery.
+for ROLE in roles/storage.objectViewer roles/artifactregistry.writer \
+            roles/bigquery.jobUser roles/bigquery.dataViewer; do
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member "serviceAccount:$COMPUTE" --role "$ROLE" --quiet >/dev/null
 done
 
 echo ">> Secret da API Anthropic (cole a chave e Enter, Ctrl+D):"
