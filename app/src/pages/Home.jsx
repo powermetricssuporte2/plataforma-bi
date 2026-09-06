@@ -14,9 +14,12 @@ export default function Home() {
     api("faturamento").then(setFat).catch(() => {});
   }, []);
 
-  const delta = resumo?.faturamento_mes_anterior
-    ? ((resumo.faturamento_mes - resumo.faturamento_mes_anterior) / resumo.faturamento_mes_anterior) * 100
-    : null;
+  // Sem faturamento no mes corrente nao existe variacao a mostrar: exibir
+  // "-100%" para um mes que ainda nao teve nota faz parecer queda real.
+  const delta =
+    resumo?.faturamento_mes != null && resumo?.faturamento_mes_anterior
+      ? ((resumo.faturamento_mes - resumo.faturamento_mes_anterior) / resumo.faturamento_mes_anterior) * 100
+      : null;
 
   return (
     <>
