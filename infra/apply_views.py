@@ -17,17 +17,17 @@ CFG = os.path.join(HERE, "..", "config", "clientes.yaml")
 CANDIDATOS = {
     # placeholder: (tabela, [colunas candidatas em ordem de preferência])
     "vw_faturamento_mensal": {
-        "__COL_DATA__":  ("FAT_NOTA_FISCAL", ["NF_DATA_EMISSAO", "NF_DATA", "NOF_DATA_EMISSAO", "DATA_EMISSAO"]),
-        "__COL_VALOR__": ("FAT_NOTA_FISCAL", ["NF_VALOR_TOTAL", "NF_VALOR", "NOF_VALOR_TOTAL", "VALOR_TOTAL"]),
+        "__COL_DATA__":  ("FAT_NOTA_FISCAL", ["NFL_DATA_EMISSAO", "NF_DATA_EMISSAO", "NOF_DATA_EMISSAO", "DATA_EMISSAO"]),
+        "__COL_VALOR__": ("FAT_NOTA_FISCAL", ["NFL_VALOR_TOTAL", "NF_VALOR_TOTAL", "NOF_VALOR_TOTAL", "VALOR_TOTAL"]),
     },
     "vw_vendas_pdv": {
-        "__COL_DATA__":  ("FCX_VENDA", ["VDA_DATA", "VEN_DATA", "DATA"]),
-        "__COL_VALOR__": ("FCX_VENDA", ["VDA_VALOR_TOTAL", "VDA_VALOR", "VEN_VALOR_TOTAL", "VALOR_TOTAL"]),
+        "__COL_DATA__":  ("FCX_VENDA", ["VEN_DATA_INC", "VDA_DATA", "VEN_DATA", "DATA"]),
+        "__COL_VALOR__": ("FCX_VENDA", ["VEN_VALOR_TOTAL", "VDA_VALOR_TOTAL", "VDA_VALOR", "VALOR_TOTAL"]),
     },
     "vw_top_produtos": {
-        "__COL_PROD_ID__":  ("FCX_VENDA_PRODUTO", ["VDP_PRO_CODIGO", "PRO_CODIGO", "VDP_PRODUTO"]),
-        "__COL_VP_VALOR__": ("FCX_VENDA_PRODUTO", ["VDP_VALOR_TOTAL", "VDP_VALOR", "VALOR_TOTAL"]),
-        "__COL_VP_QTD__":   ("FCX_VENDA_PRODUTO", ["VDP_QUANTIDADE", "QUANTIDADE", "VDP_QTD"]),
+        "__COL_PROD_ID__":  ("FCX_VENDA_PRODUTO", ["PRO_CODIGO", "VDP_PRO_CODIGO", "VDP_PRODUTO"]),
+        "__COL_VP_VALOR__": ("FCX_VENDA_PRODUTO", ["VEP_VALOR_TOTAL", "VDP_VALOR_TOTAL", "VALOR_TOTAL"]),
+        "__COL_VP_QTD__":   ("FCX_VENDA_PRODUTO", ["VEP_QUANTIDADE", "VDP_QUANTIDADE", "QUANTIDADE"]),
         "__COL_PROD_PK__":  ("EST_PRODUTO", ["PRO_CODIGO", "PRO_ID"]),
         "__COL_PROD_NOME__":("EST_PRODUTO", ["PRO_NOME", "PRO_DESCRICAO", "PRO_DESC"]),
     },
@@ -37,7 +37,7 @@ CANDIDATOS = {
         "__COL_VALOR__": ("CAI_CONTA_PAGAR_EX", ["CPG_VALOR", "CNP_VALOR", "VALOR"]),
     },
     "vw_contas_receber": {
-        "__COL_DATA__":  ("CAI_CONTA_RECEBER_BAIXA_PGTO", ["CRB_DATA_PAGAMENTO", "CRB_DATA", "DATA_PAGAMENTO"]),
+        "__COL_DATA__":  ("CAI_CONTA_RECEBER_BAIXA_PGTO", ["CRB_DATA_PAGAMENTO", "CRB_DATA", "DATA_PAGAMENTO", "DATA"]),
         "__COL_VALOR__": ("CAI_CONTA_RECEBER_BAIXA_PGTO", ["CRB_VALOR_PAGO", "CRB_VALOR", "VALOR_PAGO"]),
     },
     "vw_estoque_posicao": {
@@ -62,16 +62,29 @@ def colunas(bq, dataset, tabela):
         return set()
 
 
+# Colunas de evento que nunca representam o fato medido: pegar
+# VEN_DATA_CANCEL como "data da venda" faz o painel mostrar so o que foi
+# cancelado, que foi exatamente o que aconteceu antes desta lista existir.
+SUFIXOS_PROIBIDOS = ("CANCEL", "CANCELAMENTO", "EXC", "EXCLUSAO", "ESTORNO",
+                     "DELET", "REEMISSAO", "ALTERACAO", "UPD")
+
+
+def descartar(coluna):
+    return any(p in coluna for p in SUFIXOS_PROIBIDOS)
+
+
 def escolher(cols_reais, candidatas):
     for c in candidatas:
         if c.upper() in cols_reais:
             return c
-    # fallback: primeira coluna real que contenha o "miolo" da candidata (DATA, VALOR...)
+    # Fallback: coluna real que contenha o "miolo" da candidata (DATA, VALOR...),
+    # ignorando colunas de cancelamento/exclusao. A ordem alfabetica sozinha
+    # escolhia CANCEL antes de INC.
     for c in candidatas:
         chave = re.sub(r"^[A-Z]+_", "", c)
-        for real in sorted(cols_reais):
-            if chave in real:
-                return real
+        aptas = [r for r in sorted(cols_reais) if chave in r and not descartar(r)]
+        if aptas:
+            return aptas[0]
     return None
 
 
