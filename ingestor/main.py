@@ -2,6 +2,7 @@
 import argparse
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import yaml
 
@@ -76,10 +77,20 @@ def main():
 
     loader = BQLoader(PROJECT)
     loader.ensure_meta()
-    svc = drive_service()
-    resultados = [run_cliente(loader, svc, c) for c in clientes]
-    all_ok = all(resultados)
-    sys.exit(0 if all_ok else 1)
+
+    # Um cliente por vez levava horas com a carteira inteira, e o trabalho e
+    # quase todo espera de rede (download do Drive, carga no BigQuery).
+    # O cliente do googleapiclient nao e thread-safe: cada thread cria o seu.
+    local = __import__("threading").local()
+
+    def processar(cliente):
+        if not hasattr(local, "svc"):
+            local.svc = drive_service()
+        return run_cliente(loader, local.svc, cliente)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        resultados = list(pool.map(processar, clientes))
+    sys.exit(0 if all(resultados) else 1)
 
 
 if __name__ == "__main__":
