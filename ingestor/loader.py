@@ -52,31 +52,32 @@ class BQLoader:
         return row.m.isoformat() if row.m else None
 
     def load_table(self, cliente: str, tabela: str, raw: bytes) -> int:
+        """Carrega o CSV com os nomes do cabecalho e todas as colunas STRING.
+
+        O autodetect do BigQuery e enganoso aqui: quando o arquivo inteiro
+        parece texto ele decide que nao ha cabecalho e nomeia as colunas
+        string_field_0, string_field_1..., o que quebra as views; e quando
+        acerta o cabecalho ainda erra o tipo de colunas como codigo de barras,
+        que trazem "SEM GTIN" no meio de numeros. Definir o schema a partir do
+        cabecalho resolve os dois casos, e as views convertem com
+        pm_num()/pm_date().
+        """
         text = decode_csv(raw)
         dest = f"{self.project}.{cliente}.{tabela}"
+        primeira = text.splitlines()[0] if text.splitlines() else ""
+        cabecalho = primeira.lstrip("﻿").strip().split(";")
+        colunas = [c.strip().strip('"') for c in cabecalho]
+        schema = [self.bigquery.SchemaField(c, "STRING") for c in colunas if c]
+        if not schema:
+            raise ValueError("cabecalho vazio no CSV")
         cfg = self.bigquery.LoadJobConfig(
             source_format=self.bigquery.SourceFormat.CSV,
-            field_delimiter=";", skip_leading_rows=1, autodetect=True,
-            allow_quoted_newlines=True,
+            field_delimiter=";", skip_leading_rows=1, autodetect=False,
+            schema=schema, allow_quoted_newlines=True,
             write_disposition=self.bigquery.WriteDisposition.WRITE_TRUNCATE)
-        try:
-            job = self.bq.load_table_from_file(
-                io.BytesIO(text.encode("utf-8")), dest, job_config=cfg)
-            job.result()
-        except Exception:
-            # autodetect erra quando uma coluna "numérica" tem valor textual
-            # (ex.: código de barras com "SEM GTIN"). Recarrega tudo como
-            # STRING; as views fazem o cast seguro via pm_num()/pm_date().
-            header = text.split("\n", 1)[0].strip().split(";")
-            schema = [self.bigquery.SchemaField(col.strip(), "STRING") for col in header]
-            cfg_str = self.bigquery.LoadJobConfig(
-                source_format=self.bigquery.SourceFormat.CSV,
-                field_delimiter=";", skip_leading_rows=1, autodetect=False,
-                schema=schema, allow_quoted_newlines=True,
-                write_disposition=self.bigquery.WriteDisposition.WRITE_TRUNCATE)
-            job = self.bq.load_table_from_file(
-                io.BytesIO(text.encode("utf-8")), dest, job_config=cfg_str)
-            job.result()
+        job = self.bq.load_table_from_file(
+            io.BytesIO(text.encode("utf-8")), dest, job_config=cfg)
+        job.result()
         return self.bq.get_table(dest).num_rows
 
     def log(self, run_id, cliente, tabela, status, linhas, erro, started):

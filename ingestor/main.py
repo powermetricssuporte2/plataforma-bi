@@ -21,7 +21,7 @@ def drive_service():
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
 
-def run_cliente(loader: BQLoader, svc, cliente: dict) -> bool:
+def run_cliente(loader: BQLoader, svc, cliente: dict, forcar: bool = False) -> bool:
     cid, folder = cliente["id"], cliente["drive_folder_id"]
     # Pasta nao compartilhada ou dataset indisponivel nao pode derrubar os demais
     # clientes do mesmo run: registra o erro e segue para o proximo.
@@ -48,7 +48,7 @@ def run_cliente(loader: BQLoader, svc, cliente: dict) -> bool:
     for ref in refs:
         started = now_iso()
         try:
-            if not needs_ingest(ref.modified, loader.last_success(cid, ref.name)):
+            if not forcar and not needs_ingest(ref.modified, loader.last_success(cid, ref.name)):
                 print(f"[{cid}] {ref.name}: sem mudança, pulando")
                 continue
             raw = src.fetch_table(ref)
@@ -66,6 +66,8 @@ def run_cliente(loader: BQLoader, svc, cliente: dict) -> bool:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cliente", help="rodar só um cliente (id)")
+    ap.add_argument("--forcar", action="store_true",
+                    help="recarrega tudo, ignorando o diff por modifiedTime")
     args = ap.parse_args()
 
     with open(CFG) as f:
@@ -86,7 +88,7 @@ def main():
     def processar(cliente):
         if not hasattr(local, "svc"):
             local.svc = drive_service()
-        return run_cliente(loader, local.svc, cliente)
+        return run_cliente(loader, local.svc, cliente, forcar=args.forcar)
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         resultados = list(pool.map(processar, clientes))
