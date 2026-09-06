@@ -15,10 +15,7 @@ export default function SeletorCliente({ atual, aoTrocar }) {
           escolhido = localStorage.getItem(CHAVE);
         } catch {}
         if (!lista.some((c) => c.id === escolhido)) escolhido = lista[0]?.id || null;
-        if (escolhido) {
-          setCliente(escolhido);
-          aoTrocar(escolhido);
-        }
+        if (escolhido) trocar(escolhido);
       })
       .catch(() => {});
   }, []);

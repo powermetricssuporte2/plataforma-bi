@@ -7,6 +7,14 @@ const { validateSql, enforceLimit } = require("./guardrails");
 admin.initializeApp();
 const bq = new BigQuery();
 const PROJECT = process.env.GCLOUD_PROJECT;
+// Só o app hospedado pode chamar estas funções pelo navegador. Nao substitui a
+// checagem do token, mas evita que outra pagina use a sessao de quem esta logado.
+const ORIGENS = [
+  `https://${process.env.GCLOUD_PROJECT}.web.app`,
+  `https://${process.env.GCLOUD_PROJECT}.firebaseapp.com`,
+  "http://localhost:5173",
+];
+
 let schemaCache = {};
 
 async function schemaDoCliente(ds) {
@@ -21,7 +29,7 @@ async function schemaDoCliente(ds) {
 }
 
 exports.ask = onRequest(
-  { region: "southamerica-east1", cors: true, secrets: ["ANTHROPIC_API_KEY"], timeoutSeconds: 60 },
+  { region: "southamerica-east1", cors: ORIGENS, secrets: ["ANTHROPIC_API_KEY"], timeoutSeconds: 60 },
   async (req, res) => {
     try {
       const h = req.headers.authorization || "";

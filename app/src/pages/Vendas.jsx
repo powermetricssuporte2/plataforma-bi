@@ -28,7 +28,7 @@ export default function Vendas() {
       </Painel>
       <Painel titulo="Produtos que mais vendem">
         <Barras data={top} x="produto" ys={["receita"]} horizontal
-          altura={Math.max(260, top.length * 26 + 40)} />
+          altura={Math.max(260, top.length * 30 + 40)} />
       </Painel>
     </>
   );

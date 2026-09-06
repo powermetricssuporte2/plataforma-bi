@@ -6,6 +6,15 @@ admin.initializeApp();
 const bq = new BigQuery();
 const PROJECT = process.env.GCLOUD_PROJECT;
 
+// Só o app hospedado pode chamar estas funções pelo navegador. Nao substitui a
+// checagem do token, mas evita que outra pagina use a sessao de quem esta logado.
+const ORIGENS = [
+  `https://${process.env.GCLOUD_PROJECT}.web.app`,
+  `https://${process.env.GCLOUD_PROJECT}.firebaseapp.com`,
+  "http://localhost:5173",
+];
+
+
 // Endpoints permitidos -> query. NUNCA interpolar input do usuário no SQL.
 const QUERIES = {
   resumo:     (ds) => `SELECT * FROM \`${PROJECT}.${ds}.vw_resumo_home\``,
@@ -53,7 +62,7 @@ async function auth(req) {
   return { cliente: pedido || permitidos[0], permitidos };
 }
 
-exports.api = onRequest({ region: "southamerica-east1", cors: true }, async (req, res) => {
+exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (req, res) => {
   try {
     const { cliente, permitidos } = await auth(req);
     const endpoint = (req.path || "/").replace(/^\/api\//, "").replace(/^\//, "");

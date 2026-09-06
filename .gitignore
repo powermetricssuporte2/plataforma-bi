@@ -7,3 +7,4 @@ __pycache__/
 service-account.json
 .firebase/
 DECISOES.md
+.deploy_hosting.py

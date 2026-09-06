@@ -17,7 +17,15 @@ const rotas = [
 export default function Layout({ tema, alternarTema }) {
   const nav = useNavigate();
   const { pathname } = useLocation();
-  const [cliente, setClienteAtivo] = useState(null);
+  // Ja inicia com o cliente salvo: comecar em null remontaria as paginas
+  // assim que o seletor resolvesse, refazendo todas as consultas.
+  const [cliente, setClienteAtivo] = useState(() => {
+    try {
+      return localStorage.getItem("pm-cliente");
+    } catch {
+      return null;
+    }
+  });
   const titulo = rotas.find(([to]) => to === pathname)?.[1] || "Visão geral";
   return (
     <div className="shell">
@@ -37,7 +45,10 @@ export default function Layout({ tema, alternarTema }) {
       <main>
         <Freshness titulo={titulo} cliente={cliente}
           seletor={<SeletorCliente atual={cliente} aoTrocar={setClienteAtivo} />} />
-        <div key={cliente}><Outlet /></div>
+        {/* Chave por rota: sem isto o React reaproveita os componentes de grafico
+            entre as paginas e o Recharts mantem as dimensoes da pagina anterior,
+            desenhando fora da area visivel ate um F5. */}
+        <div key={`${pathname}|${cliente}`}><Outlet /></div>
       </main>
     </div>
   );

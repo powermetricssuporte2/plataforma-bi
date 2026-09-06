@@ -41,7 +41,11 @@ export function Linha({ data, x, y, altura = 260 }) {
         <XAxis dataKey={x} stroke={cor.texto} tickLine={false} fontSize={12} />
         <YAxis stroke={cor.texto} tickLine={false} fontSize={12} tickFormatter={fmtBRL} />
         <Tooltip {...tt} />
-        <Line type="monotone" dataKey={y} stroke={cor.brand} strokeWidth={2.2} dot={false} />
+        {/* Sem animacao: o Recharts calcula o traçado com a largura do primeiro
+            frame e, se o container ainda estava sendo medido, a curva congela
+            fora da area visivel. */}
+        <Line type="monotone" dataKey={y} stroke={cor.brand} strokeWidth={2.2} dot={false}
+          isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -54,13 +58,19 @@ export function Barras({ data, x, ys, altura = 260, horizontal = false }) {
   return (
     <ResponsiveContainer width="100%" height={altura}>
       <BarChart data={data} layout={horizontal ? "vertical" : "horizontal"}
-        margin={{ top: 4, right: 8, left: horizontal ? 60 : -8, bottom: 0 }}>
+        margin={{ top: 4, right: 12, left: horizontal ? 30 : -8, bottom: 0 }}>
         <CartesianGrid stroke={cor.grade} vertical={false} horizontal={!horizontal} />
         {horizontal ? (
           <>
             <XAxis type="number" stroke={cor.texto} tickLine={false} fontSize={12} tickFormatter={fmtBRL} />
-            <YAxis type="category" dataKey={x} stroke={cor.texto} tickLine={false} fontSize={12}
-              width={120} interval={0} />
+            {/* Nome de produto/grupo vem longo do ERP: sem corte o rotulo quebra
+                em varias linhas e as barras ficam ilegiveis. */}
+            <YAxis type="category" dataKey={x} stroke={cor.texto} tickLine={false} fontSize={11}
+              width={150} interval={0}
+              tickFormatter={(v) => {
+                const t = String(v ?? "");
+                return t.length > 22 ? t.slice(0, 21) + "…" : t;
+              }} />
           </>
         ) : (
           <>
@@ -69,7 +79,9 @@ export function Barras({ data, x, ys, altura = 260, horizontal = false }) {
           </>
         )}
         <Tooltip {...tt} cursor={{ fill: cor.brandSoft }} />
-        {ys.map((y, i) => <Bar key={y} dataKey={y} fill={paleta[i % 3]} radius={[3, 3, 0, 0]} />)}
+        {ys.map((y, i) => (
+          <Bar key={y} dataKey={y} fill={paleta[i % 3]} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   );

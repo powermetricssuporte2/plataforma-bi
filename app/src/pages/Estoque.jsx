@@ -12,7 +12,7 @@ export default function Estoque() {
       <Painel titulo="Saldo por grupo de produto">
         {/* 26px por barra: com 20 grupos os rótulos não se sobrepõem. */}
         <Barras data={grupos} x="grupo" ys={["saldo"]} horizontal
-          altura={Math.max(260, grupos.length * 26 + 40)} />
+          altura={Math.max(260, grupos.length * 30 + 40)} />
       </Painel>
       <Painel titulo="Detalhe">
         <table className="dados">
