@@ -8,3 +8,5 @@ service-account.json
 .firebase/
 DECISOES.md
 .deploy_hosting.py
+firebase-debug.log
+*.log
