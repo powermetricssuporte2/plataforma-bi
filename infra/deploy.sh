@@ -19,7 +19,10 @@ gcloud builds submit . --config /tmp/cloudbuild-ingestor.yaml --project "$PROJEC
 echo ">> Cloud Run Job..."
 gcloud run jobs deploy bi-ingestor --project "$PROJECT" --region "$REGION" \
   --image "$IMAGEM" --service-account "$SA_EMAIL" \
-  --set-env-vars "GCP_PROJECT_ID=$PROJECT" --max-retries 1 --task-timeout 3600 --quiet
+  --set-env-vars "GCP_PROJECT_ID=$PROJECT" --max-retries 1 --task-timeout 10800 \n  --memory 4Gi --cpu 2 --quiet
+# 4 GB: cada CSV e lido inteiro em memoria (bytes, texto decodificado e texto
+# reencodado) e sao quatro clientes em paralelo. Com os 512 MB padrao o
+# container era morto por falta de memoria no meio da carteira.
 
 echo ">> Scheduler de hora em hora..."
 gcloud scheduler jobs create http bi-ingestor-hourly --project "$PROJECT" \
