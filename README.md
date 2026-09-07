@@ -41,10 +41,17 @@ Com mais de um cliente liberado, aparece um seletor no topo do app.
 4. `make views` e `make user`. Pronto — o job da próxima hora já ingere.
 
 ## Acompanhamento
-A aba **Atualizações** mostra, por cliente, a última carga, há quanto tempo,
-quantas tabelas vieram e as falhas ainda pendentes. A aba **Pergunte à IA**
-responde sobre isso em texto ("quais clientes estão sem atualizar?"), usando o
-estado apurado pelo servidor para os clientes do próprio usuário.
+A aba **Atualizações** separa duas coisas que costumam ser confundidas:
+
+- **Dado de** — quando o conteúdo mudou pela última vez. Fica velho quando o
+  cliente parou de exportar do ERP para o Drive.
+- **Verificado** — quando o ingestor passou pelo cliente sem erro. Deve ficar
+  sempre abaixo de uma hora; se subir, o problema é da plataforma.
+
+Ainda lista as falhas pendentes, que somem sozinhas assim que um ciclo
+posterior roda sem erro. A aba **Pergunte à IA** responde sobre isso em texto
+("quais clientes estão sem atualizar?"), a partir do estado apurado pelo
+servidor para os clientes do próprio usuário.
 
 ## Segurança
 - Cada cliente é um dataset isolado; a API valida o cliente pedido contra a
