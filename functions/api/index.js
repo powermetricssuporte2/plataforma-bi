@@ -39,7 +39,8 @@ const QUERIES = {
   alerts:     (ds) => `SELECT mensagem, criado_em FROM \`${PROJECT}._meta.alerts\`
                        WHERE cliente = '${ds}' AND criado_em > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 26 HOUR)
                          AND criado_em > COALESCE((SELECT MAX(finished_at) FROM \`${PROJECT}._meta.ingest_log\`
-                                                   WHERE cliente = '${ds}' AND status = 'OK'), TIMESTAMP('1970-01-01'))
+                                                   WHERE cliente = '${ds}'
+                                                     AND status IN ('OK', 'VERIFICADO')), TIMESTAMP('1970-01-01'))
                        ORDER BY criado_em DESC LIMIT 5`,
 };
 
@@ -54,6 +55,13 @@ WITH ok AS (
   WHERE status = 'OK' AND cliente IN UNNEST(@ids)
   GROUP BY cliente
 ),
+-- Ultima passagem sem falha, mesmo que nada tenha mudado no Drive.
+verificado AS (
+  SELECT cliente, MAX(finished_at) quando
+  FROM \`${PROJECT}._meta.ingest_log\`
+  WHERE status IN ('OK', 'VERIFICADO') AND cliente IN UNNEST(@ids)
+  GROUP BY cliente
+),
 tabelas AS (
   SELECT l.cliente, COUNT(DISTINCT l.tabela) tabelas, SUM(l.linhas) linhas
   FROM \`${PROJECT}._meta.ingest_log\` l
@@ -65,15 +73,18 @@ falha AS (
   SELECT a.cliente, ANY_VALUE(a.mensagem) mensagem, MAX(a.criado_em) quando
   FROM \`${PROJECT}._meta.alerts\` a
   LEFT JOIN ok ON ok.cliente = a.cliente
+  LEFT JOIN verificado v ON v.cliente = a.cliente
   WHERE a.cliente IN UNNEST(@ids)
-    AND a.criado_em > COALESCE(ok.ultima, TIMESTAMP('1970-01-01'))
+    AND a.criado_em > COALESCE(v.quando, ok.ultima, TIMESTAMP('1970-01-01'))
   GROUP BY a.cliente
 )
 SELECT c.id, COALESCE(c.nome, c.id) nome, ok.ultima,
        TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), ok.ultima, HOUR) horas,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), v.quando, HOUR) horas_verificacao,
        t.tabelas, t.linhas, f.mensagem AS falha
 FROM \`${PROJECT}._meta.clientes\` c
 LEFT JOIN ok ON ok.cliente = c.id
+LEFT JOIN verificado v ON v.cliente = c.id
 LEFT JOIN tabelas t ON t.cliente = c.id
 LEFT JOIN falha f ON f.cliente = c.id
 WHERE c.id IN UNNEST(@ids)

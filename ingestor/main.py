@@ -59,6 +59,12 @@ def run_cliente(loader: BQLoader, svc, cliente: dict, forcar: bool = False) -> b
             loader.log(new_run_id(), cid, ref.name, "ERRO", 0, str(e), started)
             loader.alert(cid, f"Falha em {ref.name}: {e}")
             print(f"[{cid}] {ref.name}: ERRO {e}", file=sys.stderr)
+    if ok:
+        # Um cliente cujas tabelas nao mudaram nao gera nenhum registro de
+        # sucesso, e um alerta antigo ficaria pendente para sempre. Esta linha
+        # marca que o ciclo rodou inteiro sem falha, sem se passar por carga
+        # nova: o selo de frescor continua olhando so para status OK.
+        loader.log(new_run_id(), cid, "-", "VERIFICADO", 0, None, now_iso())
     return ok
 
 

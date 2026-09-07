@@ -23,18 +23,24 @@ export default function Status() {
   if (erro) return <div className="alerta">{erro}</div>;
   if (!linhas) return <p className="muted">Carregando…</p>;
 
-  const emDia = linhas.filter((l) => l.horas != null && l.horas < HORAS_ATRASO);
-  const atrasados = linhas.filter((l) => l.horas != null && l.horas >= HORAS_ATRASO);
-  const nunca = linhas.filter((l) => l.horas == null);
+  // "Em dia" olha a ultima verificacao, nao a ultima carga: um cliente cujo
+  // export no Drive nao muda ha dias continua sendo verificado de hora em hora.
+  const checado = (l) => l.horas_verificacao ?? l.horas;
+  const emDia = linhas.filter((l) => checado(l) != null && checado(l) < HORAS_ATRASO);
+  const atrasados = linhas.filter((l) => checado(l) != null && checado(l) >= HORAS_ATRASO);
+  const nunca = linhas.filter((l) => checado(l) == null);
   const comFalha = linhas.filter((l) => l.falha);
 
   const linha = (l) => (
     <tr key={l.id}>
       <td>{l.nome}</td>
       <td>{quando(l.horas)}</td>
+      <td>{quando(l.horas_verificacao)}</td>
       <td>{l.tabelas ?? "—"}</td>
       <td>{l.linhas != null ? Number(l.linhas).toLocaleString("pt-BR") : "—"}</td>
-      <td className={l.falha ? "erro" : ""}>{l.falha ? "falha" : l.horas == null ? "sem dados" : l.horas < HORAS_ATRASO ? "em dia" : "atrasado"}</td>
+      <td className={l.falha ? "erro" : ""}>
+        {l.falha ? "falha" : checado(l) == null ? "sem dados" : checado(l) < HORAS_ATRASO ? "em dia" : "atrasado"}
+      </td>
     </tr>
   );
 
@@ -66,7 +72,7 @@ export default function Status() {
       <Painel titulo="Atualização por cliente">
         <table className="dados">
           <thead>
-            <tr><th>Cliente</th><th>Última carga</th><th>Tabelas</th><th>Linhas</th><th>Situação</th></tr>
+            <tr><th>Cliente</th><th>Dado de</th><th>Verificado</th><th>Tabelas</th><th>Linhas</th><th>Situação</th></tr>
           </thead>
           <tbody>{linhas.map(linha)}</tbody>
         </table>
