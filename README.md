@@ -40,6 +40,18 @@ Com mais de um cliente liberado, aparece um seletor no topo do app.
 3. Bloco novo em `config/clientes.yaml` com `ativo: true`
 4. `make views` e `make user`. Pronto — o job da próxima hora já ingere.
 
+## Duas carteiras, acompanhadas separadamente
+- **Dados** (24 clientes): quem exporta CSV do ERP para o Drive e alimenta os
+  painéis de Vendas, Estoque e Financeiro.
+- **Relatórios** (199 arquivos, 49 empresas): os .pbix/.pbip/.pbit do Drive.
+  Há empresa com relatório e sem exportação, e o contrário — por isso as duas
+  listas não coincidem.
+
+A aba **Relatórios BI** mostra o inventário por empresa, com quanto tempo cada
+relatório está sem alteração, separando clientes ativos, inativos e material
+interno. Cópias do mesmo relatório ("- Copia", "(2)", "backup_20260414")
+aparecem uma vez só, na versão mais recente.
+
 ## Acompanhamento
 A aba **Atualizações** separa duas coisas que costumam ser confundidas:
 
