@@ -62,10 +62,21 @@ def carregar_pastas():
             if normalizar(v["nome"]).startswith(PREFIXOS_EXPORT)]
 
 
+# Pastas de organizacao que aparecem entre a empresa e a exportacao.
+INTERMEDIARIAS = ("power bi", "power_bi", "powerbi", "empresas", "01 - inativas")
+
+
 def empresa(caminho):
-    """'/Empresas/Dinamica/Dados_Bi' -> 'Dinamica'."""
-    partes = [p for p in caminho.split("/") if p]
-    return partes[-2] if len(partes) >= 2 else caminho
+    """'/Empresas/R1 Fashion/POWER BI/Dados_Bi' -> 'R1 Fashion'.
+
+    Sobe a hierarquia ate sair das pastas de organizacao: varios clientes tem
+    um nivel "POWER BI" entre o nome da empresa e a pasta de exportacao.
+    """
+    partes = [p for p in caminho.split("/") if p][:-1]  # tira a propria Dados_Bi
+    for nome in reversed(partes):
+        if normalizar(nome) not in INTERMEDIARIAS:
+            return nome
+    return partes[-1] if partes else caminho
 
 
 def main():

@@ -36,11 +36,24 @@ def run_cliente(loader: BQLoader, svc, cliente: dict, forcar: bool = False) -> b
         if not refs:
             raise RuntimeError(
                 "nenhuma tabela visivel — compartilhe a pasta com a service account (Leitor)")
+    except Exception as e:
+        # A causa muda o que fazer: pasta nao compartilhada e acao no Drive,
+        # o resto e problema da plataforma. Dizer sempre "sem acesso ao Drive"
+        # mandava o operador conferir a permissao errada.
+        motivo = (f"Pasta do Drive nao acessivel ({folder}): {e}"
+                  if "tabela visivel" in str(e) or "drive" in str(e).lower()
+                  else f"Falha ao preparar o cliente: {e}")
+        loader.log(new_run_id(), cid, "-", "ERRO", 0, motivo, now_iso())
+        loader.alert(cid, motivo)
+        print(f"[{cid}] ERRO: {motivo}", file=sys.stderr)
+        return False
+
+    try:
         loader.bq.create_dataset(f"{loader.project}.{cid}", exists_ok=True)
     except Exception as e:
-        loader.log(new_run_id(), cid, "-", "ERRO", 0, f"acesso ao cliente: {e}", now_iso())
-        loader.alert(cid, f"Sem acesso a pasta do Drive ({folder}): {e}")
-        print(f"[{cid}] ERRO de acesso: {e}", file=sys.stderr)
+        loader.log(new_run_id(), cid, "-", "ERRO", 0, f"dataset: {e}", now_iso())
+        loader.alert(cid, f"Falha ao criar o dataset: {e}")
+        print(f"[{cid}] ERRO no dataset: {e}", file=sys.stderr)
         return False
     print(f"[{cid}] {len(refs)} tabelas na whitelist encontradas no Drive")
     ok = True
