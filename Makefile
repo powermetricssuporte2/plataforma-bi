@@ -24,3 +24,9 @@ user:             ## Cria usuário: make user EMAIL=x SENHA=y CLIENTE=a,b (aceit
 hosting:          ## Publica so o app (contorna sessao expirada do firebase-tools)
 	cd app && npm run build
 	GCLOUD_TOKEN="$$(gcloud auth print-access-token)" python3 infra/deploy_hosting.py
+
+buscar:           ## Acha a pasta do cliente no Drive: make buscar NOME="dinamica"
+	python3 infra/buscar_drive.py $(NOME)
+
+pastas:           ## Lista todas as pastas de exportacao vistas no Drive
+	python3 infra/buscar_drive.py --listar

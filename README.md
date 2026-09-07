@@ -32,10 +32,28 @@ lista, então trocar o parâmetro no navegador não dá acesso a outro cliente.
 Com mais de um cliente liberado, aparece um seletor no topo do app.
 
 ## Cliente novo (2 min)
-1. Compartilhar a pasta do Drive com a service account (Leitor).
+1. `make buscar NOME="dinamica"` devolve o `drive_folder_id` da pasta de
+   exportação. Se o nome não bater, ele sugere os parecidos — os nomes no Drive
+   têm acento e variação ("Dinâmica", "Dados_Bi_SB", "Dados_bi_AFT").
+2. Compartilhar a pasta do Drive com a service account (Leitor).
    Se houver subpastas, marcar para aplicar aos itens internos.
-2. Bloco novo em `config/clientes.yaml` com `ativo: true`
-3. `make views` e `make user`. Pronto — o job da próxima hora já ingere.
+3. Bloco novo em `config/clientes.yaml` com `ativo: true`
+4. `make views` e `make user`. Pronto — o job da próxima hora já ingere.
+
+## Acompanhamento
+A aba **Atualizações** mostra, por cliente, a última carga, há quanto tempo,
+quantas tabelas vieram e as falhas ainda pendentes. A aba **Pergunte à IA**
+responde sobre isso em texto ("quais clientes estão sem atualizar?"), usando o
+estado apurado pelo servidor para os clientes do próprio usuário.
+
+## Segurança
+- Cada cliente é um dataset isolado; a API valida o cliente pedido contra a
+  lista gravada no token, então trocar o parâmetro no navegador não dá acesso.
+- O SQL gerado pela IA passa por guardrails: só SELECT, só o dataset do cliente
+  (com ou sem crases), LIMIT 500 e teto de 1 GB por consulta.
+- O navegador nunca fala com o BigQuery: tudo passa pelas Cloud Functions.
+- CSP, HSTS, X-Frame-Options DENY, nosniff e Referrer-Policy no Hosting; CORS
+  restrito às origens do app.
 
 ## Particularidades do export do SB
 - Os campos numéricos vêm como `NUMERIC(*,5)` **sem ponto decimal**: R$ 89,90 chega

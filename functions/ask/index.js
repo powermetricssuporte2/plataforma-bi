@@ -99,7 +99,16 @@ P: vendas por dia no último mês -> {"sql":"SELECT dia, receita FROM \`${PROJEC
         messages: [{ role: "user", content: pergunta }],
       });
       const texto = msg.content.filter(b => b.type === "text").map(b => b.text).join("");
-      const plano = JSON.parse(texto.replace(/```json|```/g, "").trim());
+      // A IA nem sempre devolve JSON: quando recusa a pergunta (por exemplo uma
+      // tentativa de ler o dataset de outro cliente) ela responde em texto, e
+      // isso deve chegar ao usuario como resposta, nao como erro de parsing.
+      const limpo = texto.replace(/```json|```/g, "").trim();
+      let plano;
+      try {
+        plano = JSON.parse(limpo);
+      } catch {
+        return res.json({ titulo: "Resposta", tipo_grafico: "texto", resposta: limpo, linhas: [] });
+      }
 
       if (plano.tipo_grafico === "texto" || (!plano.sql && plano.resposta)) {
         return res.json({ titulo: plano.titulo || "Situação das atualizações",
