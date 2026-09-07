@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api";
+import { ajustarRelatorio, api } from "../api";
 import Painel from "../components/Painel";
 
 const DIAS_PARADO = 30;
@@ -15,6 +15,29 @@ export default function Relatorios() {
   const [erro, setErro] = useState("");
   const [categoria, setCategoria] = useState("cliente");
   const [busca, setBusca] = useState("");
+  const [editando, setEditando] = useState(null);   // arquivo_id em edição
+  const [rascunho, setRascunho] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  // Aplica a correção na lista já carregada para o resultado aparecer na hora.
+  async function salvar(l, mudanca) {
+    setSalvando(true);
+    try {
+      await ajustarRelatorio(l.arquivo_id, mudanca);
+      setLinhas((atual) =>
+        mudanca.oculto
+          ? atual.filter((x) => x.arquivo_id !== l.arquivo_id)
+          : atual.map((x) =>
+              x.arquivo_id === l.arquivo_id
+                ? { ...x, empresa: mudanca.empresa.toUpperCase(), corrigido: true }
+                : x));
+      setEditando(null);
+    } catch (e) {
+      setErro(String(e.message));
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   useEffect(() => {
     api("relatorios", "").then(setLinhas).catch((e) => setErro(String(e.message)));
@@ -61,19 +84,48 @@ export default function Relatorios() {
       <Painel titulo={`${visiveis.length} relatório(s)`}>
         <table className="dados">
           <thead>
-            <tr><th>Empresa</th><th>Arquivo</th><th>Alterado</th><th>Tamanho</th></tr>
+            <tr><th>Empresa</th><th>Arquivo</th><th>Alterado</th><th>Tamanho</th><th></th></tr>
           </thead>
           <tbody>
             {visiveis.map((l) => (
-              <tr key={l.caminho}>
-                <td>{l.empresa}</td>
-                <td title={l.caminho}>{l.nome.replace(/\.pbix$/i, "")}</td>
+              <tr key={l.arquivo_id || l.caminho}>
+                <td>
+                  {editando === l.arquivo_id ? (
+                    <input autoFocus value={rascunho} disabled={salvando}
+                      onChange={(e) => setRascunho(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && rascunho.trim()) salvar(l, { empresa: rascunho.trim() });
+                        if (e.key === "Escape") setEditando(null);
+                      }} />
+                  ) : (
+                    <span title={l.corrigido ? "empresa corrigida manualmente" : l.caminho}>
+                      {l.empresa}{l.corrigido ? " ✎" : ""}
+                    </span>
+                  )}
+                </td>
+                <td title={l.caminho}>{l.nome}</td>
                 <td className={l.dias > DIAS_PARADO ? "erro" : ""}>{idade(l.dias)}</td>
                 <td>{mb(l.tamanho_bytes)}</td>
+                <td className="acoes">
+                  {editando === l.arquivo_id ? (
+                    <>
+                      <button className="link" disabled={salvando || !rascunho.trim()}
+                        onClick={() => salvar(l, { empresa: rascunho.trim() })}>salvar</button>
+                      <button className="link" onClick={() => setEditando(null)}>cancelar</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="link" onClick={() => { setEditando(l.arquivo_id); setRascunho(l.empresa); }}>
+                        corrigir
+                      </button>
+                      <button className="link" onClick={() => salvar(l, { oculto: true })}>ocultar</button>
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
             {visiveis.length === 0 && (
-              <tr><td colSpan={4} className="muted">Nenhum relatório nesse filtro.</td></tr>
+              <tr><td colSpan={5} className="muted">Nenhum relatório nesse filtro.</td></tr>
             )}
           </tbody>
         </table>

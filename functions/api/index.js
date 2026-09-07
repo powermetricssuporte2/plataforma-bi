@@ -95,10 +95,23 @@ ORDER BY ok.ultima IS NULL DESC, ok.ultima ASC`;
 // carteira de relatorios, que existe mesmo para empresa que ainda nao exporta
 // dados para o BigQuery.
 const SQL_RELATORIOS = `
-SELECT empresa, nome, caminho, categoria, modificado_em, tamanho_bytes,
-       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), modificado_em, DAY) dias
-FROM \`${PROJECT}._meta.relatorios\`
-ORDER BY modificado_em DESC`;
+-- A correcao feita na tela vence o que veio do Drive, e o relatorio ocultado
+-- some da lista. Guardar isso a parte deixa o inventario livre para ser
+-- reescrito a cada ciclo sem perder o ajuste.
+WITH ajuste AS (
+  SELECT arquivo_id, ANY_VALUE(empresa HAVING MAX ajustado_em) empresa,
+         ANY_VALUE(oculto HAVING MAX ajustado_em) oculto
+  FROM \`${PROJECT}._meta.relatorios_ajustes\`
+  GROUP BY arquivo_id
+)
+SELECT r.arquivo_id, COALESCE(a.empresa, r.empresa) empresa, r.nome, r.caminho,
+       r.categoria, r.modificado_em, r.tamanho_bytes,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.modificado_em, DAY) dias,
+       a.empresa IS NOT NULL AS corrigido
+FROM \`${PROJECT}._meta.relatorios\` r
+LEFT JOIN ajuste a ON a.arquivo_id = r.arquivo_id
+WHERE NOT COALESCE(a.oculto, FALSE)
+ORDER BY r.modificado_em DESC`;
 
 // O usuário pode ter acesso a vários clientes; `?cliente=` escolhe qual, sempre
 // validado contra a lista do token — nunca contra o que o navegador afirma.
@@ -112,16 +125,17 @@ async function auth(req) {
   const h = req.headers.authorization || "";
   if (!h.startsWith("Bearer ")) throw new Error("sem token");
   const decoded = await admin.auth().verifyIdToken(h.slice(7));
+  const quem = decoded.email || decoded.uid;
   const permitidos = clientesDoToken(decoded);
   if (!permitidos.length) throw new Error("usuário sem cliente_id");
   const pedido = String(req.query?.cliente || "");
   if (pedido && !permitidos.includes(pedido)) throw new Error("cliente_id não autorizado");
-  return { cliente: pedido || permitidos[0], permitidos };
+  return { cliente: pedido || permitidos[0], permitidos, quem };
 }
 
 exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (req, res) => {
   try {
-    const { cliente, permitidos } = await auth(req);
+    const { cliente, permitidos, quem: quemPediu } = await auth(req);
     const endpoint = (req.path || "/").replace(/^\/api\//, "").replace(/^\//, "");
     if (endpoint === "clientes") {
       const [nomes] = await bq.query({
@@ -130,6 +144,21 @@ exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (
       });
       const mapa = Object.fromEntries(nomes.map((r) => [r.id, r.nome]));
       return res.json(permitidos.map((id) => ({ id, nome: mapa[id] || id })));
+    }
+    if (endpoint === "relatorios" && req.method === "POST") {
+      const { arquivo_id: arquivoId, empresa, oculto } = req.body || {};
+      if (!arquivoId || typeof arquivoId !== "string") {
+        return res.status(400).json({ erro: "arquivo_id obrigatório" });
+      }
+      const nome = empresa == null ? null : String(empresa).trim().toUpperCase().slice(0, 120);
+      await bq.query({
+        query: `INSERT INTO \`${PROJECT}._meta.relatorios_ajustes\`
+                (arquivo_id, empresa, oculto, ajustado_por, ajustado_em)
+                VALUES (@id, @empresa, @oculto, @quem, CURRENT_TIMESTAMP())`,
+        params: { id: arquivoId, empresa: nome, oculto: !!oculto, quem: quemPediu },
+        types: { empresa: "STRING" },
+      });
+      return res.json({ ok: true });
     }
     if (endpoint === "relatorios") {
       const [linhas] = await bq.query({ query: SQL_RELATORIOS });

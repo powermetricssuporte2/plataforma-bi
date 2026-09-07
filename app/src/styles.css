@@ -112,6 +112,13 @@ button.cta { background: var(--brand); border-color: var(--brand); color: var(--
 button.cta:disabled { opacity: .6; cursor: wait; }
 .erro { color: var(--bad); font-size: 13px; }
 
+.acoes { white-space: nowrap; text-align: right; }
+.link { background: none; border: 0; padding: 2px 6px; color: var(--text-2);
+  font-size: 12.5px; cursor: pointer; border-radius: 6px; }
+.link:hover:not(:disabled) { color: var(--brand); background: var(--brand-soft); }
+.link:disabled { opacity: .5; cursor: default; }
+table.dados input { padding: 4px 8px; font-size: 13px; width: 100%; }
+
 /* Filtros da lista de relatorios */
 .filtros { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .chip { background: var(--ink-1); border: 1px solid var(--line); color: var(--text-2);

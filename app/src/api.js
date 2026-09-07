@@ -54,5 +54,18 @@ export async function ask(pergunta, cliente = clienteAtual) {
   return r.json();
 }
 
+// Correcao manual do inventario: trocar a empresa de um relatorio ou tira-lo
+// da lista. O backend guarda quem alterou.
+export async function ajustarRelatorio(arquivoId, { empresa, oculto } = {}) {
+  const r = await fetch("/api/relatorios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
+    cache: "no-store",
+    body: JSON.stringify({ arquivo_id: arquivoId, empresa, oculto }),
+  });
+  if (!r.ok) throw new Error(await erroDaResposta(r));
+  return r.json();
+}
+
 export const brl = (v) =>
   v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

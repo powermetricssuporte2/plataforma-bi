@@ -1,22 +1,29 @@
 from relatorios import classificar, empresa_do_caminho
 
 
+def test_nome_da_empresa_vem_padronizado_em_caixa_alta():
+    # No Drive convivem "ULTRASAT", "Vagalume" e "ami"; a lista precisa
+    # apresentar um estilo so.
+    assert empresa_do_caminho("/Empresas/ami/x.pbix") == "AMI"
+    assert empresa_do_caminho("/Empresas/Vagalume/x.pbix") == "VAGALUME"
+
+
 def test_empresa_e_o_nivel_abaixo_de_empresas():
-    assert empresa_do_caminho("/Empresas/Adriane Modas/POWER BI/x.pbix") == "Adriane Modas"
-    assert empresa_do_caminho("/Empresas/Delta/POWERBI_DELTA1.pbix") == "Delta"
+    assert empresa_do_caminho("/Empresas/Adriane Modas/POWER BI/x.pbix") == "ADRIANE MODAS"
+    assert empresa_do_caminho("/Empresas/Delta/POWERBI_DELTA1.pbix") == "DELTA"
 
 
 def test_pasta_de_projeto_nao_vira_nome_do_cliente():
     # "BI RODEIO" e "Gestao de velocidade" sao pastas internas do cliente.
     assert empresa_do_caminho(
-        "/Empresas/Frigurifico Rodeio/BI RODEIO/tela.pbix") == "Frigurifico Rodeio"
+        "/Empresas/Frigurifico Rodeio/BI RODEIO/tela.pbix") == "FRIGURIFICO RODEIO"
     assert empresa_do_caminho(
         "/Empresas/ULTRASAT/FUGA/Gestao de velocidade/v1.pbix") == "ULTRASAT"
 
 
 def test_cliente_inativo_esta_um_nivel_mais_fundo():
     caminho = "/Empresas/01 - INATIVAS/Hidrolux/Power Bi/h.pbix"
-    assert empresa_do_caminho(caminho) == "Hidrolux"
+    assert empresa_do_caminho(caminho) == "HIDROLUX"
     assert classificar(caminho) == "inativo"
 
 
@@ -30,8 +37,8 @@ def test_relatorio_de_cliente_ativo():
 
 
 def test_caminho_fora_de_empresas_nao_quebra():
-    assert empresa_do_caminho("/Meu Drive/solto.pbix") == "Meu Drive"
-    assert empresa_do_caminho("/x.pbix") == "(sem pasta)"
+    assert empresa_do_caminho("/Meu Drive/solto.pbix") == "MEU DRIVE"
+    assert empresa_do_caminho("/x.pbix") == "(SEM PASTA)"
 
 
 from relatorios import apenas_mais_recentes, chave_do_relatorio

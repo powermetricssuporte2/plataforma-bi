@@ -80,6 +80,20 @@ def empresa_do_caminho(caminho):
     projeto como "BI RODEIO" ou "Gestao de velocidade" seriam confundidas com o
     nome do cliente.
     """
+    return _padronizar(_empresa_bruta(caminho))
+
+
+def _padronizar(nome):
+    """Nome da empresa sempre em caixa alta.
+
+    No Drive a mesma empresa aparece como "ULTRASAT", "Vagalume" e
+    "ami"; sem padronizar, a lista fica com tres estilos misturados.
+    O nome do arquivo permanece exatamente como esta no Drive.
+    """
+    return (nome or "").strip().upper()
+
+
+def _empresa_bruta(caminho):
     partes = [p for p in caminho.split("/") if p][:-1]  # tira o arquivo
     limpos = [_sem_acento(p) for p in partes]
     if "empresas" in limpos:
