@@ -117,6 +117,9 @@ button.cta { background: var(--brand); border-color: var(--brand); color: var(--
 button.cta:disabled { opacity: .6; cursor: wait; }
 .erro { color: var(--bad); font-size: 13px; }
 
+.freq { background: var(--ink-0); border: 1px solid var(--line); color: var(--text-2);
+  border-radius: 6px; padding: 3px 6px; font-size: 12.5px; cursor: pointer; }
+.kpi .valor.ruim { color: var(--bad); }
 .acoes { white-space: nowrap; text-align: right; }
 .link { background: none; border: 0; padding: 2px 6px; color: var(--text-2);
   font-size: 12.5px; cursor: pointer; border-radius: 6px; }

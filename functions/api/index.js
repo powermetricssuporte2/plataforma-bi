@@ -100,14 +100,25 @@ const SQL_RELATORIOS = `
 -- reescrito a cada ciclo sem perder o ajuste.
 WITH ajuste AS (
   SELECT arquivo_id, ANY_VALUE(empresa HAVING MAX ajustado_em) empresa,
-         ANY_VALUE(oculto HAVING MAX ajustado_em) oculto
+         ANY_VALUE(oculto HAVING MAX ajustado_em) oculto,
+         ANY_VALUE(frequencia HAVING MAX ajustado_em) frequencia
   FROM \`${PROJECT}._meta.relatorios_ajustes\`
   GROUP BY arquivo_id
 )
 SELECT r.arquivo_id, COALESCE(a.empresa, r.empresa) empresa, r.nome, r.caminho,
        r.categoria, r.modificado_em, r.tamanho_bytes,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.modificado_em, HOUR) horas,
        TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.modificado_em, DAY) dias,
-       a.empresa IS NOT NULL AS corrigido
+       a.empresa IS NOT NULL AS corrigido,
+       a.frequencia,
+       -- Prazo em horas do que foi combinado para o relatorio. Sem frequencia
+       -- definida nao existe atraso: o relatorio so nao e acompanhado.
+       CASE a.frequencia
+         WHEN 'horaria' THEN 2      -- uma volta do agendador mais folga
+         WHEN 'diaria'  THEN 30
+         WHEN 'semanal' THEN 8 * 24
+         WHEN 'mensal'  THEN 33 * 24
+       END AS prazo_horas
 FROM \`${PROJECT}._meta.relatorios\` r
 LEFT JOIN ajuste a ON a.arquivo_id = r.arquivo_id
 WHERE NOT COALESCE(a.oculto, FALSE)
@@ -146,17 +157,22 @@ exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (
       return res.json(permitidos.map((id) => ({ id, nome: mapa[id] || id })));
     }
     if (endpoint === "relatorios" && req.method === "POST") {
-      const { arquivo_id: arquivoId, empresa, oculto } = req.body || {};
+      const { arquivo_id: arquivoId, empresa, oculto, frequencia } = req.body || {};
+      const FREQUENCIAS = ["horaria", "diaria", "semanal", "mensal"];
+      if (frequencia != null && frequencia !== "" && !FREQUENCIAS.includes(frequencia)) {
+        return res.status(400).json({ erro: "frequência inválida" });
+      }
       if (!arquivoId || typeof arquivoId !== "string") {
         return res.status(400).json({ erro: "arquivo_id obrigatório" });
       }
       const nome = empresa == null ? null : String(empresa).trim().toUpperCase().slice(0, 120);
       await bq.query({
         query: `INSERT INTO \`${PROJECT}._meta.relatorios_ajustes\`
-                (arquivo_id, empresa, oculto, ajustado_por, ajustado_em)
-                VALUES (@id, @empresa, @oculto, @quem, CURRENT_TIMESTAMP())`,
-        params: { id: arquivoId, empresa: nome, oculto: !!oculto, quem: quemPediu },
-        types: { empresa: "STRING" },
+                (arquivo_id, empresa, oculto, frequencia, ajustado_por, ajustado_em)
+                VALUES (@id, @empresa, @oculto, @frequencia, @quem, CURRENT_TIMESTAMP())`,
+        params: { id: arquivoId, empresa: nome, oculto: !!oculto,
+                  frequencia: frequencia || null, quem: quemPediu },
+        types: { empresa: "STRING", frequencia: "STRING" },
       });
       return res.json({ ok: true });
     }

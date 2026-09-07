@@ -52,6 +52,15 @@ relatório está sem alteração, separando clientes ativos, inativos e material
 interno. Cópias do mesmo relatório ("- Copia", "(2)", "backup_20260414")
 aparecem uma vez só, na versão mais recente.
 
+Cada relatório recebe a **frequência combinada** com o cliente — de hora em
+hora, diária, semanal, mensal ou sem acompanhamento. Quem estoura o prazo fica
+marcado em vermelho e entra na contagem de "fora do prazo"; a IA responde sobre
+isso em texto. Relatório sem frequência definida aparece na lista mas nunca
+gera atraso, porque nem todo .pbix precisa de atualização periódica.
+
+As prorrogações consideram uma folga sobre o prazo (2 h para o horário, 30 h
+para o diário), para não acusar atraso por causa do intervalo do agendador.
+
 ## Acompanhamento
 A aba **Atualizações** separa duas coisas que costumam ser confundidas:
 

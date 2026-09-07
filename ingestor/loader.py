@@ -31,7 +31,7 @@ class BQLoader:
           -- Correcoes feitas na tela; sobrevivem a reescrita do inventario.
           CREATE TABLE IF NOT EXISTS `{ds}.relatorios_ajustes`(
             arquivo_id STRING, empresa STRING, oculto BOOL,
-            ajustado_por STRING, ajustado_em TIMESTAMP);
+            frequencia STRING, ajustado_por STRING, ajustado_em TIMESTAMP);
           CREATE TABLE IF NOT EXISTS `{ds}.relatorios`(
             arquivo_id STRING, nome STRING, empresa STRING, caminho STRING,
             categoria STRING, modificado_em TIMESTAMP, tamanho_bytes INT64,

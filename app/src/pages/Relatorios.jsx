@@ -4,6 +4,19 @@ import Painel from "../components/Painel";
 
 const DIAS_PARADO = 30;
 
+// O que se espera de cada relatório. Sem frequência definida ele aparece na
+// lista mas não gera atraso — nem todo .pbix precisa de atualização periódica.
+const FREQUENCIAS = [
+  ["", "não acompanhar"],
+  ["horaria", "de hora em hora"],
+  ["diaria", "diária"],
+  ["semanal", "semanal"],
+  ["mensal", "mensal"],
+];
+// Espelha os prazos do backend para a linha reagir sem recarregar a lista.
+const PRAZO = { horaria: 2, diaria: 30, semanal: 8 * 24, mensal: 33 * 24 };
+const atrasado = (l) => l.prazo_horas != null && l.horas > l.prazo_horas;
+
 const idade = (d) =>
   d == null ? "—" : d === 0 ? "hoje" : d === 1 ? "ontem" : d < 30 ? `há ${d} dias` :
   d < 365 ? `há ${Math.floor(d / 30)} meses` : `há ${Math.floor(d / 365)} anos`;
@@ -21,9 +34,14 @@ export default function Relatorios() {
 
   // Aplica a correção na lista já carregada para o resultado aparecer na hora.
   async function salvar(l, mudanca) {
+    // Um ajuste não pode apagar os outros: o backend guarda a última versão
+    // de cada campo, então mando sempre o estado completo da linha.
+    const completo = {
+      empresa: l.empresa, frequencia: l.frequencia || "", ...mudanca,
+    };
     setSalvando(true);
     try {
-      await ajustarRelatorio(l.arquivo_id, mudanca);
+      await ajustarRelatorio(l.arquivo_id, completo);
       setLinhas((atual) =>
         mudanca.oculto
           ? atual.filter((x) => x.arquivo_id !== l.arquivo_id)
@@ -57,7 +75,8 @@ export default function Relatorios() {
 
   const doCliente = linhas.filter((l) => l.categoria === "cliente");
   const recentes = doCliente.filter((l) => l.dias != null && l.dias <= 7).length;
-  const parados = doCliente.filter((l) => l.dias != null && l.dias > DIAS_PARADO).length;
+  const acompanhados = doCliente.filter((l) => l.prazo_horas != null);
+  const emAtraso = acompanhados.filter(atrasado).length;
   const empresas = new Set(doCliente.map((l) => l.empresa)).size;
 
   const contar = (c) => linhas.filter((l) => l.categoria === c).length;
@@ -68,7 +87,10 @@ export default function Relatorios() {
         <div className="kpi"><div className="valor">{doCliente.length}</div><div className="rotulo">Relatórios de clientes</div></div>
         <div className="kpi"><div className="valor">{empresas}</div><div className="rotulo">Empresas com relatório</div></div>
         <div className="kpi"><div className="valor">{recentes}</div><div className="rotulo">Mexidos nos últimos 7 dias</div></div>
-        <div className="kpi"><div className="valor">{parados}</div><div className="rotulo">Parados há mais de {DIAS_PARADO} dias</div></div>
+        <div className="kpi">
+          <div className={`valor ${emAtraso ? "ruim" : ""}`}>{emAtraso}</div>
+          <div className="rotulo">Fora do prazo combinado ({acompanhados.length} acompanhados)</div>
+        </div>
       </div>
 
       <div className="filtros">
@@ -84,7 +106,7 @@ export default function Relatorios() {
       <Painel titulo={`${visiveis.length} relatório(s)`}>
         <table className="dados">
           <thead>
-            <tr><th>Empresa</th><th>Arquivo</th><th>Alterado</th><th>Tamanho</th><th></th></tr>
+            <tr><th>Empresa</th><th>Arquivo</th><th>Alterado</th><th>Esperado</th><th>Tamanho</th><th></th></tr>
           </thead>
           <tbody>
             {visiveis.map((l) => (
@@ -104,7 +126,15 @@ export default function Relatorios() {
                   )}
                 </td>
                 <td title={l.caminho}>{l.nome}</td>
-                <td className={l.dias > DIAS_PARADO ? "erro" : ""}>{idade(l.dias)}</td>
+                <td className={atrasado(l) || l.dias > DIAS_PARADO ? "erro" : ""}>
+                  {idade(l.dias)}{atrasado(l) ? " ⚠" : ""}
+                </td>
+                <td>
+                  <select className="freq" value={l.frequencia || ""} disabled={salvando}
+                    onChange={(e) => salvar(l, { frequencia: e.target.value })}>
+                    {FREQUENCIAS.map(([v, rotulo]) => <option key={v} value={v}>{rotulo}</option>)}
+                  </select>
+                </td>
                 <td>{mb(l.tamanho_bytes)}</td>
                 <td className="acoes">
                   {editando === l.arquivo_id ? (
@@ -125,7 +155,7 @@ export default function Relatorios() {
               </tr>
             ))}
             {visiveis.length === 0 && (
-              <tr><td colSpan={5} className="muted">Nenhum relatório nesse filtro.</td></tr>
+              <tr><td colSpan={6} className="muted">Nenhum relatório nesse filtro.</td></tr>
             )}
           </tbody>
         </table>

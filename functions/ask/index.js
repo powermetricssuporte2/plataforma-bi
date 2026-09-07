@@ -59,16 +59,31 @@ async function estadoDasCargas(ids) {
 async function estadoDosRelatorios() {
   const [linhas] = await bq.query({
     query: `
-      SELECT empresa, nome,
-             TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), modificado_em, DAY) dias
-      FROM \`${PROJECT}._meta.relatorios\`
-      WHERE categoria = 'cliente'
-      ORDER BY modificado_em DESC
+      WITH ajuste AS (
+        SELECT arquivo_id, ANY_VALUE(oculto HAVING MAX ajustado_em) oculto,
+               ANY_VALUE(frequencia HAVING MAX ajustado_em) frequencia,
+               ANY_VALUE(empresa HAVING MAX ajustado_em) empresa
+        FROM \`${PROJECT}._meta.relatorios_ajustes\`
+        GROUP BY arquivo_id
+      )
+      SELECT COALESCE(a.empresa, r.empresa) empresa, r.nome, a.frequencia,
+             TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.modificado_em, HOUR) horas,
+             TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.modificado_em, DAY) dias
+      FROM \`${PROJECT}._meta.relatorios\` r
+      LEFT JOIN ajuste a ON a.arquivo_id = r.arquivo_id
+      WHERE r.categoria = 'cliente' AND NOT COALESCE(a.oculto, FALSE)
+      ORDER BY a.frequencia IS NULL, r.modificado_em DESC
       LIMIT 200`,
   });
   if (!linhas.length) return "(inventario ainda nao gerado)";
+  const PRAZO = { horaria: 2, diaria: 30, semanal: 8 * 24, mensal: 33 * 24 };
   return linhas
-    .map((l) => `- ${l.empresa} / ${l.nome}: alterado ha ${l.dias} dia(s)`)
+    .map((l) => {
+      const prazo = PRAZO[l.frequencia];
+      const combinado = l.frequencia ? `, esperado ${l.frequencia}` : ", sem acompanhamento";
+      const situacao = prazo != null && l.horas > prazo ? " — FORA DO PRAZO" : "";
+      return `- ${l.empresa} / ${l.nome}: alterado ha ${l.dias} dia(s)${combinado}${situacao}`;
+    })
     .join(String.fromCharCode(10));
 }
 
@@ -106,7 +121,8 @@ ${schema}
 Estado das atualizações da carteira deste usuário (dado já apurado, não consultável por SQL):
 ${cargas}
 
-Relatórios Power BI no Drive, do mais recente para o mais antigo (dado já apurado):
+Relatórios Power BI no Drive, com a frequência de atualização combinada para
+cada um e se estão fora do prazo (dado já apurado):
 ${relatorios}
 
 Se a pergunta for sobre atualização, atraso, falha, relatório Power BI, .pbix
