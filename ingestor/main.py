@@ -37,7 +37,6 @@ def run_cliente(loader: BQLoader, svc, cliente: dict, forcar: bool = False) -> b
             raise RuntimeError(
                 "nenhuma tabela visivel — compartilhe a pasta com a service account (Leitor)")
         loader.bq.create_dataset(f"{loader.project}.{cid}", exists_ok=True)
-        loader.registrar_cliente(cid, cliente.get("nome", cid))
     except Exception as e:
         loader.log(new_run_id(), cid, "-", "ERRO", 0, f"acesso ao cliente: {e}", now_iso())
         loader.alert(cid, f"Sem acesso a pasta do Drive ({folder}): {e}")
@@ -79,6 +78,10 @@ def main():
 
     loader = BQLoader(PROJECT)
     loader.ensure_meta()
+    # Antes do paralelismo: quatro threads fazendo MERGE na mesma tabela de
+    # clientes disputam a linha e o BigQuery aborta com "concurrent update".
+    for c in clientes:
+        loader.registrar_cliente(c["id"], c.get("nome", c["id"]))
 
     # Um cliente por vez levava horas com a carteira inteira, e o trabalho e
     # quase todo espera de rede (download do Drive, carga no BigQuery).

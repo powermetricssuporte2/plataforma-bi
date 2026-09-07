@@ -28,6 +28,30 @@ async function schemaDoCliente(ds) {
   return v;
 }
 
+
+// Estado das cargas dos clientes que o usuario pode ver. E entregue pronto no
+// prompt: a IA nunca consulta _meta, que e comum a toda a carteira.
+async function estadoDasCargas(ids) {
+  const [linhas] = await bq.query({
+    query: `
+      WITH ok AS (
+        SELECT cliente, MAX(finished_at) ultima FROM \`${PROJECT}._meta.ingest_log\`
+        WHERE status = 'OK' AND cliente IN UNNEST(@ids) GROUP BY cliente
+      )
+      SELECT COALESCE(c.nome, c.id) nome, ok.ultima,
+             TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), ok.ultima, HOUR) horas
+      FROM \`${PROJECT}._meta.clientes\` c
+      LEFT JOIN ok ON ok.cliente = c.id
+      WHERE c.id IN UNNEST(@ids)
+      ORDER BY ok.ultima IS NULL DESC, ok.ultima ASC`,
+    params: { ids },
+  });
+  return linhas
+    .map((l) => `- ${l.nome}: ${l.horas == null ? "nunca atualizado"
+      : l.horas < 1 ? "atualizado há menos de 1 h" : `atualizado há ${l.horas} h`}`)
+    .join(String.fromCharCode(10));
+}
+
 exports.ask = onRequest(
   { region: "southamerica-east1", cors: ORIGENS, secrets: ["ANTHROPIC_API_KEY"], timeoutSeconds: 60 },
   async (req, res) => {
@@ -49,11 +73,22 @@ exports.ask = onRequest(
       // que o header HTTP rejeita.
       const client = new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY || "").trim() });
       const schema = await schemaDoCliente(ds);
+      const cargas = await estadoDasCargas(permitidos);
       const msg = await client.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 800,
-        system: `Você gera SQL BigQuery para um dashboard. Views disponíveis no dataset \`${PROJECT}.${ds}\`:
+        system: `Você responde sobre os indicadores de um cliente e sobre o estado das atualizações.
+
+Views do cliente selecionado, no dataset \`${PROJECT}.${ds}\`:
 ${schema}
+
+Estado das atualizações da carteira deste usuário (dado já apurado, não consultável por SQL):
+${cargas}
+
+Se a pergunta for sobre atualização, atraso, falha ou "há quanto tempo", responda
+com {"resposta": "...", "titulo": "...", "tipo_grafico": "texto"} usando só a
+lista acima — aponte quem está atrasado e o que isso significa. Caso contrário,
+gere SQL sobre as views.
 Regras: responda SOMENTE um JSON {"sql": "...", "titulo": "...", "tipo_grafico": "tabela|barras|linha"}.
 Use apenas SELECT sobre as views acima, sempre com o caminho completo \`${PROJECT}.${ds}.vw_...\`.
 Datas no fuso America/Sao_Paulo. Valores em BRL.
@@ -65,6 +100,11 @@ P: vendas por dia no último mês -> {"sql":"SELECT dia, receita FROM \`${PROJEC
       });
       const texto = msg.content.filter(b => b.type === "text").map(b => b.text).join("");
       const plano = JSON.parse(texto.replace(/```json|```/g, "").trim());
+
+      if (plano.tipo_grafico === "texto" || (!plano.sql && plano.resposta)) {
+        return res.json({ titulo: plano.titulo || "Situação das atualizações",
+                          tipo_grafico: "texto", resposta: String(plano.resposta || ""), linhas: [] });
+      }
 
       const erroSql = validateSql(plano.sql, PROJECT, ds);
       if (erroSql) return res.status(400).json({ erro: `SQL rejeitado: ${erroSql}` });

@@ -12,6 +12,7 @@ const rotas = [
   ["/financeiro", "Financeiro"],
   ["/estoque", "Estoque"],
   ["/ia", "Pergunte à IA"],
+  ["/status", "Atualizações"],
 ];
 
 export default function Layout({ tema, alternarTema }) {

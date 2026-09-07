@@ -53,7 +53,10 @@ export default function Ia() {
       {erro && <div className="alerta">{erro}</div>}
       {resp && (
         <Painel titulo={resp.titulo}>
-          {resp.linhas.length === 0 && (
+          {resp.tipo_grafico === "texto" && (
+            <p className="resposta-texto">{resp.resposta}</p>
+          )}
+          {resp.tipo_grafico !== "texto" && resp.linhas.length === 0 && (
             <p className="muted">Nenhum resultado para essa pergunta no período consultado.</p>
           )}
           {resp.tipo_grafico === "linha" && cols.length >= 2 && (
@@ -72,10 +75,12 @@ export default function Ia() {
               </tbody>
             </table>
           )}
-          <details style={{ marginTop: 10 }}>
-            <summary className="muted">SQL gerado</summary>
-            <div className="resposta-sql">{resp.sql}</div>
-          </details>
+          {resp.sql && (
+            <details style={{ marginTop: 10 }}>
+              <summary className="muted">SQL gerado</summary>
+              <div className="resposta-sql">{resp.sql}</div>
+            </details>
+          )}
         </Painel>
       )}
     </div>

@@ -43,6 +43,42 @@ const QUERIES = {
                        ORDER BY criado_em DESC LIMIT 5`,
 };
 
+
+// Panorama da carteira: uma linha por cliente com a ultima carga bem-sucedida,
+// quantas tabelas vieram nela e qual foi a ultima falha ainda nao superada.
+// Recebe a lista de clientes por parametro — nunca concatenada no SQL.
+const SQL_STATUS = `
+WITH ok AS (
+  SELECT cliente, MAX(finished_at) ultima
+  FROM \`${PROJECT}._meta.ingest_log\`
+  WHERE status = 'OK' AND cliente IN UNNEST(@ids)
+  GROUP BY cliente
+),
+tabelas AS (
+  SELECT l.cliente, COUNT(DISTINCT l.tabela) tabelas, SUM(l.linhas) linhas
+  FROM \`${PROJECT}._meta.ingest_log\` l
+  JOIN ok ON ok.cliente = l.cliente
+  WHERE l.status = 'OK' AND l.finished_at > TIMESTAMP_SUB(ok.ultima, INTERVAL 6 HOUR)
+  GROUP BY l.cliente
+),
+falha AS (
+  SELECT a.cliente, ANY_VALUE(a.mensagem) mensagem, MAX(a.criado_em) quando
+  FROM \`${PROJECT}._meta.alerts\` a
+  LEFT JOIN ok ON ok.cliente = a.cliente
+  WHERE a.cliente IN UNNEST(@ids)
+    AND a.criado_em > COALESCE(ok.ultima, TIMESTAMP('1970-01-01'))
+  GROUP BY a.cliente
+)
+SELECT c.id, COALESCE(c.nome, c.id) nome, ok.ultima,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), ok.ultima, HOUR) horas,
+       t.tabelas, t.linhas, f.mensagem AS falha
+FROM \`${PROJECT}._meta.clientes\` c
+LEFT JOIN ok ON ok.cliente = c.id
+LEFT JOIN tabelas t ON t.cliente = c.id
+LEFT JOIN falha f ON f.cliente = c.id
+WHERE c.id IN UNNEST(@ids)
+ORDER BY ok.ultima IS NULL DESC, ok.ultima ASC`;
+
 // O usuário pode ter acesso a vários clientes; `?cliente=` escolhe qual, sempre
 // validado contra a lista do token — nunca contra o que o navegador afirma.
 function clientesDoToken(decoded) {
@@ -73,6 +109,10 @@ exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (
       });
       const mapa = Object.fromEntries(nomes.map((r) => [r.id, r.nome]));
       return res.json(permitidos.map((id) => ({ id, nome: mapa[id] || id })));
+    }
+    if (endpoint === "status") {
+      const [linhas] = await bq.query({ query: SQL_STATUS, params: { ids: permitidos } });
+      return res.json(linhas);
     }
     const q = QUERIES[endpoint];
     if (!q) return res.status(404).json({ erro: `endpoint desconhecido: ${endpoint}` });
