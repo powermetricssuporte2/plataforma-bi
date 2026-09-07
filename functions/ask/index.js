@@ -52,6 +52,26 @@ async function estadoDasCargas(ids) {
     .join(String.fromCharCode(10));
 }
 
+
+// Relatorios Power BI do Drive, com quanto tempo estao sem alteracao. Vem
+// pronto no prompt pelo mesmo motivo do estado das cargas: e informacao da
+// carteira, nao do dataset de um cliente.
+async function estadoDosRelatorios() {
+  const [linhas] = await bq.query({
+    query: `
+      SELECT empresa, nome,
+             TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), modificado_em, DAY) dias
+      FROM \`${PROJECT}._meta.relatorios\`
+      WHERE categoria = 'cliente'
+      ORDER BY modificado_em DESC
+      LIMIT 200`,
+  });
+  if (!linhas.length) return "(inventario ainda nao gerado)";
+  return linhas
+    .map((l) => `- ${l.empresa} / ${l.nome}: alterado ha ${l.dias} dia(s)`)
+    .join(String.fromCharCode(10));
+}
+
 exports.ask = onRequest(
   { region: "southamerica-east1", cors: ORIGENS, secrets: ["ANTHROPIC_API_KEY"], timeoutSeconds: 60 },
   async (req, res) => {
@@ -74,6 +94,7 @@ exports.ask = onRequest(
       const client = new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY || "").trim() });
       const schema = await schemaDoCliente(ds);
       const cargas = await estadoDasCargas(permitidos);
+      const relatorios = await estadoDosRelatorios();
       const msg = await client.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 800,
@@ -85,7 +106,11 @@ ${schema}
 Estado das atualizações da carteira deste usuário (dado já apurado, não consultável por SQL):
 ${cargas}
 
-Se a pergunta for sobre atualização, atraso, falha ou "há quanto tempo", responda
+Relatórios Power BI no Drive, do mais recente para o mais antigo (dado já apurado):
+${relatorios}
+
+Se a pergunta for sobre atualização, atraso, falha, relatório Power BI, .pbix
+ou "há quanto tempo", responda
 com {"resposta": "...", "titulo": "...", "tipo_grafico": "texto"} usando só a
 lista acima — aponte quem está atrasado e o que isso significa. Caso contrário,
 gere SQL sobre as views.

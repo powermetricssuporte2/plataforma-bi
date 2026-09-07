@@ -112,6 +112,13 @@ button.cta { background: var(--brand); border-color: var(--brand); color: var(--
 button.cta:disabled { opacity: .6; cursor: wait; }
 .erro { color: var(--bad); font-size: 13px; }
 
+/* Filtros da lista de relatorios */
+.filtros { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { background: var(--ink-1); border: 1px solid var(--line); color: var(--text-2);
+  border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.chip.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+.busca { flex: 1; min-width: 200px; }
+
 /* Chat IA */
 .chat { display: flex; flex-direction: column; gap: 12px; }
 .chat .pergunta { display: flex; gap: 8px; }

@@ -28,7 +28,35 @@ class BQLoader:
             cliente STRING, mensagem STRING, criado_em TIMESTAMP);
           CREATE TABLE IF NOT EXISTS `{ds}.clientes`(
             id STRING, nome STRING);
+          CREATE TABLE IF NOT EXISTS `{ds}.relatorios`(
+            arquivo_id STRING, nome STRING, empresa STRING, caminho STRING,
+            categoria STRING, modificado_em TIMESTAMP, tamanho_bytes INT64,
+            visto_em TIMESTAMP);
         """).result()
+
+    def salvar_relatorios(self, itens):
+        """Substitui o inventario de .pbix pelo estado atual do Drive.
+
+        Reescrever a tabela inteira e mais simples e mais correto que atualizar
+        linha a linha: relatorio apagado ou movido no Drive precisa sumir daqui.
+        """
+        tabela = f"{self.project}._meta.relatorios"
+        agora = now_iso()
+        linhas = [dict(i, visto_em=agora) for i in itens]
+        cfg = self.bigquery.LoadJobConfig(
+            write_disposition=self.bigquery.WriteDisposition.WRITE_TRUNCATE,
+            schema=[
+                self.bigquery.SchemaField("arquivo_id", "STRING"),
+                self.bigquery.SchemaField("nome", "STRING"),
+                self.bigquery.SchemaField("empresa", "STRING"),
+                self.bigquery.SchemaField("caminho", "STRING"),
+                self.bigquery.SchemaField("categoria", "STRING"),
+                self.bigquery.SchemaField("modificado_em", "TIMESTAMP"),
+                self.bigquery.SchemaField("tamanho_bytes", "INT64"),
+                self.bigquery.SchemaField("visto_em", "TIMESTAMP"),
+            ])
+        self.bq.load_table_from_json(linhas, tabela, job_config=cfg).result()
+        return len(linhas)
 
     def registrar_cliente(self, cid: str, nome: str):
         """Espelha config/clientes.yaml no BigQuery para o app exibir nomes."""

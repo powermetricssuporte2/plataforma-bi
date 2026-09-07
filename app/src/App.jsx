@@ -11,6 +11,7 @@ import Financeiro from "./pages/Financeiro";
 import Estoque from "./pages/Estoque";
 import Ia from "./pages/Ia";
 import Status from "./pages/Status";
+import Relatorios from "./pages/Relatorios";
 
 export default function App() {
   const [user, setUser] = useState(undefined); // undefined = carregando
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/ia" element={<Ia />} />
           <Route path="/status" element={<Status />} />
+          <Route path="/relatorios" element={<Relatorios />} />
         </Route>
       </Routes>
     </BrowserRouter>

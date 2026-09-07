@@ -90,6 +90,16 @@ LEFT JOIN falha f ON f.cliente = c.id
 WHERE c.id IN UNNEST(@ids)
 ORDER BY ok.ultima IS NULL DESC, ok.ultima ASC`;
 
+
+// Inventario dos .pbix do Drive. Nao e filtrado por cliente: e a visao da
+// carteira de relatorios, que existe mesmo para empresa que ainda nao exporta
+// dados para o BigQuery.
+const SQL_RELATORIOS = `
+SELECT empresa, nome, caminho, categoria, modificado_em, tamanho_bytes,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), modificado_em, DAY) dias
+FROM \`${PROJECT}._meta.relatorios\`
+ORDER BY modificado_em DESC`;
+
 // O usuário pode ter acesso a vários clientes; `?cliente=` escolhe qual, sempre
 // validado contra a lista do token — nunca contra o que o navegador afirma.
 function clientesDoToken(decoded) {
@@ -120,6 +130,10 @@ exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (
       });
       const mapa = Object.fromEntries(nomes.map((r) => [r.id, r.nome]));
       return res.json(permitidos.map((id) => ({ id, nome: mapa[id] || id })));
+    }
+    if (endpoint === "relatorios") {
+      const [linhas] = await bq.query({ query: SQL_RELATORIOS });
+      return res.json(linhas);
     }
     if (endpoint === "status") {
       const [linhas] = await bq.query({ query: SQL_STATUS, params: { ids: permitidos } });

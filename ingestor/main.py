@@ -8,6 +8,7 @@ import yaml
 
 from diff import needs_ingest
 from loader import BQLoader, new_run_id, now_iso
+from relatorios import listar_pbix
 from source import DriveCSVSource
 
 PROJECT = os.environ.get("GCP_PROJECT_ID") or os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -114,6 +115,16 @@ def main():
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         resultados = list(pool.map(processar, clientes))
+
+    # Inventario dos .pbix: independe dos clientes do YAML, porque ha relatorio
+    # de empresa que ainda nao exporta dados — e sao justamente esses que
+    # ficam sem acompanhamento.
+    try:
+        itens = listar_pbix(drive_service())
+        print(f"[relatorios] {loader.salvar_relatorios(itens)} arquivos .pbix inventariados")
+    except Exception as e:
+        print(f"[relatorios] ERRO ao inventariar: {e}", file=sys.stderr)
+
     sys.exit(0 if all(resultados) else 1)
 
 
