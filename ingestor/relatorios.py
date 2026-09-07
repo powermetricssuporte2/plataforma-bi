@@ -95,38 +95,49 @@ def empresa_do_caminho(caminho):
     return partes[0] if partes else "(sem pasta)"
 
 
-def listar_pbix(svc):
-    """Devolve os .pbix visiveis para a service account, com caminho resolvido."""
-    arquivos, pastas, token = [], {}, None
+def _paginar(svc, **kwargs):
+    """Percorre todas as paginas de files().list()."""
+    token = None
     while True:
-        resp = svc.files().list(
-            q=("(name contains '.pbix' or name contains '.pbip' or name contains '.pbit') "
-               "and trashed = false and mimeType != 'application/vnd.google-apps.folder'"),
-            fields="nextPageToken, files(id, name, modifiedTime, size, parents)",
-            pageSize=1000, pageToken=token,
-            includeItemsFromAllDrives=True, supportsAllDrives=True,
-        ).execute()
-        arquivos.extend(resp.get("files", []))
+        resp = svc.files().list(pageToken=token, pageSize=1000,
+                                includeItemsFromAllDrives=True,
+                                supportsAllDrives=True, **kwargs).execute()
+        yield from resp.get("files", [])
         token = resp.get("nextPageToken")
         if not token:
-            break
+            return
 
-    def nome_pasta(pid):
-        """Resolve o nome de uma pasta uma unica vez; a arvore se repete muito."""
-        if pid not in pastas:
-            try:
-                d = svc.files().get(fileId=pid, fields="id, name, parents",
-                                    supportsAllDrives=True).execute()
-                pastas[pid] = {"nome": d.get("name", ""), "pais": d.get("parents", [])}
-            except Exception:
-                pastas[pid] = {"nome": "", "pais": []}
-        return pastas[pid]
+
+def listar_pbix(svc):
+    """Devolve os relatorios visiveis para a service account, ja deduplicados."""
+    arquivos = list(_paginar(
+        svc,
+        q=("(name contains '.pbix' or name contains '.pbip' or name contains '.pbit') "
+           "and trashed = false and mimeType != 'application/vnd.google-apps.folder'"),
+        fields="nextPageToken, files(id, name, modifiedTime, size, parents)"))
+
+    # Todas as pastas de uma vez: resolver o caminho consultando pasta a pasta
+    # levava centenas de chamadas e o job estourava o tempo.
+    pastas = {f["id"]: {"nome": f.get("name", ""), "pais": f.get("parents", [])}
+              for f in _paginar(
+                  svc,
+                  q="mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+                  fields="nextPageToken, files(id, name, parents)")}
+
+    cache = {}
 
     def caminho_de(pais, prof=0):
         if not pais or prof > 15:
             return ""
-        p = nome_pasta(pais[0])
-        return caminho_de(p["pais"], prof + 1) + "/" + p["nome"]
+        pid = pais[0]
+        if pid in cache:
+            return cache[pid]
+        p = pastas.get(pid)
+        if not p:                      # pasta acima do que a conta enxerga
+            return ""
+        valor = caminho_de(p["pais"], prof + 1) + "/" + p["nome"]
+        cache[pid] = valor
+        return valor
 
     saida = []
     for f in arquivos:
