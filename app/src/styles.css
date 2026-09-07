@@ -93,7 +93,12 @@ main { padding: 22px clamp(14px, 3vw, 34px); max-width: 1100px; width: 100%; }
   padding: 16px; margin-bottom: 16px; }
 .painel h2 { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--text-2); }
 
+/* Tabela larga (relatorios) precisa rolar dentro do painel, e nao empurrar a
+   pagina inteira para o lado. */
+.painel { overflow-x: auto; }
 table.dados { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dados td, table.dados th { white-space: nowrap; }
+table.dados td:nth-child(2) { white-space: normal; word-break: break-word; min-width: 220px; }
 table.dados th { text-align: left; color: var(--text-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 table.dados td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 table.dados tr:last-child td { border-bottom: 0; }

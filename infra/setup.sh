@@ -30,6 +30,16 @@ for ROLE in roles/storage.objectViewer roles/artifactregistry.writer \
     --member "serviceAccount:$COMPUTE" --role "$ROLE" --quiet >/dev/null
 done
 
+# A tela de relatorios grava correcoes manuais. A conta das functions so tem
+# leitura no BigQuery; a escrita e concedida nesta tabela e em nenhuma outra,
+# para que a interface nao possa alterar dado de cliente.
+echo ">> Permissao de escrita na tabela de ajustes..."
+bq query --project_id "$PROJECT" --use_legacy_sql=false   "CREATE SCHEMA IF NOT EXISTS \`$PROJECT._meta\` OPTIONS(location='$REGION')" >/dev/null 2>&1 || true
+bq query --project_id "$PROJECT" --use_legacy_sql=false   "CREATE TABLE IF NOT EXISTS \`$PROJECT._meta.relatorios_ajustes\`(
+     arquivo_id STRING, empresa STRING, oculto BOOL,
+     ajustado_por STRING, ajustado_em TIMESTAMP)" >/dev/null 2>&1 || true
+bq add-iam-policy-binding --project_id="$PROJECT"   --member="serviceAccount:${NUM}-compute@developer.gserviceaccount.com"   --role="roles/bigquery.dataEditor"   "$PROJECT:_meta.relatorios_ajustes" >/dev/null 2>&1 || true
+
 echo ">> Secret da API Anthropic (cole a chave e Enter, Ctrl+D):"
 gcloud secrets create ANTHROPIC_API_KEY --project "$PROJECT" --data-file=- 2>/dev/null || \
   echo "   (secret já existe — para trocar: gcloud secrets versions add ANTHROPIC_API_KEY --data-file=-)"
