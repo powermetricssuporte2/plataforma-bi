@@ -8,7 +8,7 @@ import yaml
 
 from diff import needs_ingest
 from loader import BQLoader, new_run_id, now_iso
-from descobrir import pastas_com_exportacao
+from descobrir import pastas_com_exportacao, empresas_do_drive, _mapa_de_pastas
 from relatorios import listar_pbix
 from source import DriveCSVSource
 
@@ -103,11 +103,27 @@ def main():
     loader.ensure_meta()
 
     if args.descobrir:
-        achadas = pastas_com_exportacao(drive_service())
+        # A varredura roda uma vez e alimenta as duas tabelas: o mapa de pastas
+        # e o mapa de empresas compartilham a arvore do Drive, que e a parte
+        # cara (uma listagem de todas as pastas visiveis).
+        svc = drive_service()
+        pastas = _mapa_de_pastas(svc)
+        # De pasta do Drive para o id do cliente: e assim que se confere se o
+        # dataset de um cliente vem mesmo da pasta daquela empresa.
+        with open(CFG) as f:
+            configurados = {c["drive_folder_id"]: c["id"] for c in yaml.safe_load(f)["clientes"]}
+        achadas = pastas_com_exportacao(svc, pastas, configurados)
         print(f"[descoberta] {loader.salvar_pastas_erp(achadas)} pastas de exportacao no Drive")
         for a in achadas:
+            marca = a["cliente_configurado"] or "NAO CONFIGURADA"
             print(f"  {a['pasta_id']}  {a['modificado_em'][:10] if a['modificado_em'] else '?'}"
-                  f"  {a['tabelas_encontradas']}/5  {a['caminho']}")
+                  f"  {a['tabelas_encontradas']}/5  [{marca}]  {a['caminho']}")
+
+        empresas = empresas_do_drive(svc, pastas, achadas, configurados)
+        print(f"[descoberta] {loader.salvar_empresas_drive(empresas)} empresas no Drive")
+        for e in empresas:
+            print(f"  {e['empresa_id']}  export={e['pastas_exportacao']}"
+                  f"  bi={e['relatorios_bi']}  [{e['cliente_configurado'] or '-'}]  {e['empresa']}")
         sys.exit(0)
     # Antes do paralelismo: quatro threads fazendo MERGE na mesma tabela de
     # clientes disputam a linha e o BigQuery aborta com "concurrent update".

@@ -91,6 +91,32 @@ WHERE c.id IN UNNEST(@ids)
 ORDER BY ok.ultima IS NULL DESC, ok.ultima ASC`;
 
 
+// Procedencia: de qual pasta do Drive (pelo ID) veio o dado de cada cliente, e
+// quais empresas do Drive ficaram de fora. Sem isto o painel pede fe — o numero
+// aparece sem dizer de onde saiu, e empresa que so tem .pbix e nenhum CSV some
+// do mapa em vez de aparecer como pendencia.
+const SQL_ORIGEM = `
+SELECT c.id, COALESCE(c.nome, c.id) nome,
+       p.pasta_id, p.pasta, p.caminho, p.empresa, p.empresa_id,
+       p.tabelas_encontradas,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), p.modificado_em, HOUR) horas_arquivo,
+       p.modificado_em
+FROM \`${PROJECT}._meta.clientes\` c
+LEFT JOIN \`${PROJECT}._meta.pastas_erp\` p ON p.cliente_configurado = c.id
+WHERE c.id IN UNNEST(@ids)
+ORDER BY p.modificado_em IS NULL DESC, p.modificado_em ASC`;
+
+// Empresas vistas no Drive que ninguem configurou como cliente. A coluna de
+// relatorios separa "empresa que so tem Power BI" de "empresa sem fonte
+// nenhuma": as duas precisam de acao diferente.
+const SQL_SEM_CLIENTE = `
+SELECT empresa_id, empresa, pastas_exportacao, relatorios_bi,
+       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), modificado_em, DAY) dias
+FROM \`${PROJECT}._meta.empresas_drive\`
+WHERE cliente_configurado IS NULL
+ORDER BY pastas_exportacao DESC, relatorios_bi DESC, empresa`;
+
+
 // Inventario dos .pbix do Drive. Nao e filtrado por cliente: e a visao da
 // carteira de relatorios, que existe mesmo para empresa que ainda nao exporta
 // dados para o BigQuery.
@@ -179,6 +205,11 @@ exports.api = onRequest({ region: "southamerica-east1", cors: ORIGENS }, async (
     if (endpoint === "relatorios") {
       const [linhas] = await bq.query({ query: SQL_RELATORIOS });
       return res.json(linhas);
+    }
+    if (endpoint === "origem") {
+      const [linhas] = await bq.query({ query: SQL_ORIGEM, params: { ids: permitidos } });
+      const [pendentes] = await bq.query({ query: SQL_SEM_CLIENTE });
+      return res.json({ clientes: linhas, sem_cliente: pendentes });
     }
     if (endpoint === "status") {
       const [linhas] = await bq.query({ query: SQL_STATUS, params: { ids: permitidos } });
