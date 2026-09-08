@@ -26,14 +26,17 @@ EXTENSOES = (".pbix", ".pbip", ".pbit")
 # Sem remove-los, "Delta", "Delta - Copia" e "Delta - Copia (2)" contariam como
 # tres relatorios diferentes.
 PADROES_COPIA = [
-    r"\s*-\s*c[oó]pia(\s*\(\d+\))?",
-    r"\s*-\s*copy(\s*\(\d+\))?",
-    r"\s*\(\d+\)",
-    r"\s*-?\s*backup[_\- ]?\d*",
-    r"\s*-?\s*(antigo|antiga|old|bkp)",
-    r"[_\- ]?\d{8}",           # CARBOMARAU_backup_20260414
+    r"\s*[-_]?\s*\(?\s*c[oó]pia\s*\)?(\s*\(?\d+\)?)?",   # "- Copia", "COPIA", "(cópia 2)"
+    r"\s*[-_]?\s*copy(\s*\(?\d+\)?)?",
+    r"\s*\(\d+\)",                                        # "(2)"
+    r"\s*[-_]?\s*backup[_\- ]?\d*",                       # com ou sem data no fim
+    r"\s*[-_]?\s*bkp(?![a-z])",
+    r"\s*[-_]+\s*bk(?![a-z])",                            # "-_BK"
+    r"\s*[-_]?\s*\(?teste\)?(?![a-z])",                   # "- teste)", "_teste"
+    r"\s*[-_]?\s*corrompid[oa](?![a-z])",
+    r"\s*[-_]?\s*(antigo|antiga|old|nao usar|nao_usar)(?![a-z])",
+    r"[_\- ]?\d{8}",                                      # data solta: _20260414
 ]
-
 
 def chave_do_relatorio(nome):
     """Nome sem extensao nem marca de copia, para agrupar as versoes do mesmo arquivo."""

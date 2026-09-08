@@ -30,3 +30,8 @@ buscar:           ## Acha a pasta do cliente no Drive: make buscar NOME="dinamic
 
 pastas:           ## Lista todas as pastas de exportacao vistas no Drive
 	python3 infra/buscar_drive.py --listar
+
+descobrir:        ## Lista as pastas de exportacao que a service account enxerga
+	gcloud run jobs update bi-ingestor --project $(PROJECT) --region southamerica-east1 	  --command python --args "main.py,--descobrir" --quiet
+	gcloud run jobs execute bi-ingestor --project $(PROJECT) --region southamerica-east1 --wait
+	gcloud run jobs update bi-ingestor --project $(PROJECT) --region southamerica-east1 	  --command python --args "main.py" --quiet

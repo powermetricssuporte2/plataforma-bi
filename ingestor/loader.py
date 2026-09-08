@@ -29,6 +29,10 @@ class BQLoader:
           CREATE TABLE IF NOT EXISTS `{ds}.clientes`(
             id STRING, nome STRING);
           -- Correcoes feitas na tela; sobrevivem a reescrita do inventario.
+          -- O que existe no Drive, para conferir contra config/clientes.yaml.
+          CREATE TABLE IF NOT EXISTS `{ds}.pastas_erp`(
+            pasta_id STRING, pasta STRING, caminho STRING,
+            tabelas_encontradas INT64, modificado_em TIMESTAMP, visto_em TIMESTAMP);
           CREATE TABLE IF NOT EXISTS `{ds}.relatorios_ajustes`(
             arquivo_id STRING, empresa STRING, oculto BOOL,
             frequencia STRING, ajustado_por STRING, ajustado_em TIMESTAMP);
@@ -37,6 +41,24 @@ class BQLoader:
             categoria STRING, modificado_em TIMESTAMP, tamanho_bytes INT64,
             visto_em TIMESTAMP);
         """).result()
+
+    def salvar_pastas_erp(self, itens):
+        """Reescreve o retrato das pastas de exportacao vistas no Drive."""
+        agora = now_iso()
+        cfg = self.bigquery.LoadJobConfig(
+            write_disposition=self.bigquery.WriteDisposition.WRITE_TRUNCATE,
+            schema=[
+                self.bigquery.SchemaField("pasta_id", "STRING"),
+                self.bigquery.SchemaField("pasta", "STRING"),
+                self.bigquery.SchemaField("caminho", "STRING"),
+                self.bigquery.SchemaField("tabelas_encontradas", "INT64"),
+                self.bigquery.SchemaField("modificado_em", "TIMESTAMP"),
+                self.bigquery.SchemaField("visto_em", "TIMESTAMP"),
+            ])
+        linhas = [dict(i, visto_em=agora) for i in itens]
+        self.bq.load_table_from_json(
+            linhas, f"{self.project}._meta.pastas_erp", job_config=cfg).result()
+        return len(linhas)
 
     def salvar_relatorios(self, itens):
         """Substitui o inventario de .pbix pelo estado atual do Drive.

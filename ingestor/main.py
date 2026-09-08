@@ -8,6 +8,7 @@ import yaml
 
 from diff import needs_ingest
 from loader import BQLoader, new_run_id, now_iso
+from descobrir import pastas_com_exportacao
 from relatorios import listar_pbix
 from source import DriveCSVSource
 
@@ -85,6 +86,8 @@ def run_cliente(loader: BQLoader, svc, cliente: dict, forcar: bool = False) -> b
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cliente", help="rodar só um cliente (id)")
+    ap.add_argument("--descobrir", action="store_true",
+                    help="so mapeia as pastas de exportacao visiveis no Drive")
     ap.add_argument("--forcar", action="store_true",
                     help="recarrega tudo, ignorando o diff por modifiedTime")
     args = ap.parse_args()
@@ -98,6 +101,14 @@ def main():
 
     loader = BQLoader(PROJECT)
     loader.ensure_meta()
+
+    if args.descobrir:
+        achadas = pastas_com_exportacao(drive_service())
+        print(f"[descoberta] {loader.salvar_pastas_erp(achadas)} pastas de exportacao no Drive")
+        for a in achadas:
+            print(f"  {a['pasta_id']}  {a['modificado_em'][:10] if a['modificado_em'] else '?'}"
+                  f"  {a['tabelas_encontradas']}/5  {a['caminho']}")
+        sys.exit(0)
     # Antes do paralelismo: quatro threads fazendo MERGE na mesma tabela de
     # clientes disputam a linha e o BigQuery aborta com "concurrent update".
     for c in clientes:
