@@ -17,8 +17,10 @@ CFG = os.path.join(HERE, "..", "config", "clientes.yaml")
 CANDIDATOS = {
     # placeholder: (tabela, [colunas candidatas em ordem de preferência])
     "vw_faturamento_mensal": {
-        "__COL_DATA__":  ("FAT_NOTA_FISCAL", ["NFL_DATA_EMISSAO", "NF_DATA_EMISSAO", "NOF_DATA_EMISSAO", "DATA_EMISSAO"]),
-        "__COL_VALOR__": ("FAT_NOTA_FISCAL", ["NFL_VALOR_TOTAL", "NF_VALOR_TOTAL", "NOF_VALOR_TOTAL", "VALOR_TOTAL"]),
+        "__COL_NF_DATA__":   ("FAT_NOTA_FISCAL", ["NFL_DATA_EMISSAO", "NF_DATA_EMISSAO", "NOF_DATA_EMISSAO", "DATA_EMISSAO"]),
+        "__COL_NF_VALOR__":  ("FAT_NOTA_FISCAL", ["NFL_VALOR_TOTAL", "NF_VALOR_TOTAL", "NOF_VALOR_TOTAL", "VALOR_TOTAL"]),
+        "__COL_PDV_DATA__":  ("FCX_VENDA", ["VEN_DATA_INC", "VDA_DATA", "VEN_DATA", "DATA"]),
+        "__COL_PDV_VALOR__": ("FCX_VENDA", ["VEN_VALOR_TOTAL", "VDA_VALOR_TOTAL", "VDA_VALOR", "VALOR_TOTAL"]),
     },
     "vw_vendas_pdv": {
         "__COL_DATA__":  ("FCX_VENDA", ["VEN_DATA_INC", "VDA_DATA", "VEN_DATA", "DATA"]),
@@ -49,6 +51,11 @@ CANDIDATOS = {
         "__COL_GRUPO_NOME__":("EST_GRUPO", ["GRU_NOME", "GRU_DESCRICAO"]),
     },
 }
+# Placeholder ausente aqui nao mata a view: vira NULL, o ramo correspondente
+# fica sem linhas e a view cai na outra fonte. Serve para o cliente que so tem
+# nota fiscal ou so tem caixa.
+OPCIONAIS = {"__COL_PDV_DATA__", "__COL_PDV_VALOR__", "__COL_NF_DATA__", "__COL_NF_VALOR__"}
+
 ORDEM = ["_helpers", "vw_faturamento_mensal", "vw_vendas_pdv", "vw_top_produtos",
          "vw_contas_pagar", "vw_contas_receber", "vw_estoque_posicao", "vw_resumo_home"]
 
@@ -100,6 +107,9 @@ def main():
             for ph, (tab, cands) in CANDIDATOS.get(nome, {}).items():
                 cols = colunas(bq, ds, tab)
                 col = escolher(cols, cands) if cols else None
+                if not col and ph in OPCIONAIS:
+                    decisoes.append(f"[{ds}] {nome}: sem {ph} em {tab} — ramo desligado")
+                    col = "CAST(NULL AS STRING)"
                 if not col:
                     decisoes.append(f"[{ds}] {nome}: sem coluna para {ph} em {tab} — view pulada")
                     ok = False

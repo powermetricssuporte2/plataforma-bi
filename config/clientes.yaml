@@ -60,6 +60,12 @@ clientes:
     nome: "FPM Ferramentas"
     drive_folder_id: "1E9KGj9zhvbsIcrRNnL_HbJpGX9p3bczf"
     ativo: true
+  - id: imezza
+    nome: "Imezza"
+    # Pasta compartilhada direto (sem o pai "Empresas" visivel a service account),
+    # por isso a descoberta so mostra o caminho "/Dados_Bi".
+    drive_folder_id: "1b57oZ8Oo4lMXvHd218bTCcrn3KQxfmGK"
+    ativo: true
   - id: inspirare_inox
     nome: "Inspirare Inox"
     drive_folder_id: "1iNK5LEbfmcfzubMxxMi6WqMflAaUdmcF"

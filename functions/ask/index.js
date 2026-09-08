@@ -17,13 +17,26 @@ const ORIGENS = [
 
 let schemaCache = {};
 
+// Views curadas E tabelas cruas do ERP. So as views nao bastam: pergunta como
+// "quantas infracoes neste mes" nao cabe em vw_faturamento_mensal, e o dado
+// esta no CSV cru. Como o guardrail prende o SQL ao dataset do cliente, abrir
+// as tabelas cruas nao amplia o alcance de ninguem — so o vocabulario.
 async function schemaDoCliente(ds) {
   if (schemaCache[ds] && Date.now() - schemaCache[ds].t < 3600e3) return schemaCache[ds].v;
   const [rows] = await bq.query(`
     SELECT table_name, ARRAY_AGG(column_name ORDER BY ordinal_position) cols
     FROM \`${PROJECT}.${ds}.INFORMATION_SCHEMA.COLUMNS\`
-    WHERE table_name LIKE 'vw_%' GROUP BY table_name`);
-  const v = rows.map(r => `${r.table_name}(${r.cols.join(", ")})`).join("\n");
+    GROUP BY table_name ORDER BY table_name`);
+  const views = rows.filter((r) => r.table_name.startsWith("vw_"));
+  const cruas = rows.filter((r) => !r.table_name.startsWith("vw_"));
+  const linha = (r) => `${r.table_name}(${r.cols.join(", ")})`;
+  const v = [
+    "Views prontas (numeros ja corrigidos, use primeiro quando servirem):",
+    views.map(linha).join(String.fromCharCode(10)),
+    "",
+    "Tabelas cruas do ERP, exportadas do CSV (todas as colunas sao STRING):",
+    cruas.map(linha).join(String.fromCharCode(10)),
+  ].join(String.fromCharCode(10));
   schemaCache[ds] = { t: Date.now(), v };
   return v;
 }
@@ -112,7 +125,7 @@ exports.ask = onRequest(
       const relatorios = await estadoDosRelatorios();
       const msg = await client.messages.create({
         model: "claude-sonnet-5",
-        max_tokens: 800,
+        max_tokens: 1500,
         system: `Você responde sobre os indicadores de um cliente e sobre o estado das atualizações.
 
 Views do cliente selecionado, no dataset \`${PROJECT}.${ds}\`:
@@ -128,10 +141,27 @@ ${relatorios}
 Se a pergunta for sobre atualização, atraso, falha, relatório Power BI, .pbix
 ou "há quanto tempo", responda
 com {"resposta": "...", "titulo": "...", "tipo_grafico": "texto"} usando só a
-lista acima — aponte quem está atrasado e o que isso significa. Caso contrário,
-gere SQL sobre as views.
+lista acima — aponte quem está atrasado e o que isso significa. Seja breve: no máximo 6
+itens, sem listar arquivo por arquivo.
+
+Para QUALQUER outra pergunta, gere SQL sobre os dados do cliente. O objetivo é
+substituir o Power BI: se o número existe no CSV exportado do ERP, ele é
+consultável aqui. Nunca responda que não tem acesso ao dado sem antes procurar
+uma tabela crua que o contenha.
 Regras: responda SOMENTE um JSON {"sql": "...", "titulo": "...", "tipo_grafico": "tabela|barras|linha"}.
-Use apenas SELECT sobre as views acima, sempre com o caminho completo \`${PROJECT}.${ds}.vw_...\`.
+Use apenas SELECT, sempre com o caminho completo \`${PROJECT}.${ds}.<tabela>\`.
+Nas tabelas cruas toda coluna é STRING, então:
+- valor/quantidade: \`${PROJECT}.${ds}\`.pm_num(COLUNA) — corrige a vírgula decimal
+  e a escala do export do SB (NUMERIC sem ponto). Nunca some a coluna direto.
+- data/hora: SAFE_CAST(COLUNA AS TIMESTAMP) (formato "2024-04-22 18:15:19.392000");
+  para agrupar por dia/mês use DATE(...) ou DATE_TRUNC(DATE(...), MONTH).
+- ignore colunas com sufixo de cancelamento/estorno ao contar vendas.
+Se a pergunta citar outra empresa que não a selecionada, não tente adivinhar:
+responda em texto pedindo para trocar o cliente no seletor do topo, porque cada
+cliente vive num banco separado.
+Se nenhuma tabela do cliente tiver o assunto perguntado (ex.: multas, infrações,
+telemetria em um cliente de varejo), responda em texto dizendo qual dado faltaria
+e que a exportação daquele módulo precisa entrar na pasta Dados_Bi do Drive.
 Datas no fuso America/Sao_Paulo. Valores em BRL.
 Exemplos:
 P: qual foi o faturamento de agosto? -> {"sql":"SELECT faturamento FROM \`${PROJECT}.${ds}.vw_faturamento_mensal\` WHERE mes = DATE '2026-08-01'","titulo":"Faturamento de agosto","tipo_grafico":"tabela"}
@@ -148,7 +178,13 @@ P: vendas por dia no último mês -> {"sql":"SELECT dia, receita FROM \`${PROJEC
       try {
         plano = JSON.parse(limpo);
       } catch {
-        return res.json({ titulo: "Resposta", tipo_grafico: "texto", resposta: limpo, linhas: [] });
+        // Resposta longa demais chega com o JSON cortado no meio da string, e o
+        // usuario via `{"resposta": "...` cru na tela. Salva o campo de texto.
+        const m = /"resposta"\s*:\s*"((?:[^"\\]|\\.)*)/.exec(limpo);
+        const texto_ = m
+          ? m[1].replace(/\\n/g, String.fromCharCode(10)).replace(/\\"/g, String.fromCharCode(34))
+          : limpo;
+        return res.json({ titulo: "Resposta", tipo_grafico: "texto", resposta: texto_, linhas: [] });
       }
 
       if (plano.tipo_grafico === "texto" || (!plano.sql && plano.resposta)) {
