@@ -103,11 +103,71 @@ table.dados th { text-align: left; color: var(--text-2); font-weight: 500; paddi
 table.dados td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 table.dados tr:last-child td { border-bottom: 0; }
 
-/* Login */
-.login { min-height: 100%; display: grid; place-items: center; padding: 20px; }
-.login form { width: min(360px, 100%); background: var(--ink-1); border: 1px solid var(--line);
-  border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
-.login .marca { margin: 0 0 4px; }
+/* ---------- Login: vitrine a esquerda, formulario a direita ---------- */
+.auth { min-height: 100%; display: grid; grid-template-columns: 1.05fr 1fr; }
+.auth-arte {
+  position: relative; overflow: hidden; display: flex; flex-direction: column;
+  justify-content: center; gap: 26px; padding: clamp(28px, 5vw, 64px);
+  background: var(--ink-1); border-right: 1px solid var(--line);
+}
+/* Brilho da marca atras da vitrine — da profundidade sem imagem pesada. */
+.auth-brilho {
+  position: absolute; inset: -30% -20% auto -20%; height: 90%;
+  background: radial-gradient(50% 50% at 30% 40%, var(--brand-soft), transparent 70%);
+  pointer-events: none;
+}
+.auth-frase { position: relative; margin: 0; font-size: clamp(24px, 3.4vw, 38px);
+  line-height: 1.2; letter-spacing: -0.02em; color: var(--text-2); }
+.auth-frase b { color: var(--text); font-weight: 700; }
+.auth-lista { position: relative; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 10px; color: var(--text-2); font-size: 14px; }
+.auth-lista li { display: flex; gap: 10px; align-items: flex-start; }
+.auth-lista li::before {
+  content: ""; flex: none; width: 7px; height: 7px; margin-top: 7px;
+  border-radius: 2px; background: var(--brand);
+}
+
+.vitrine { position: relative; width: min(340px, 100%); height: auto; overflow: visible; }
+.vitrine-grade, .vitrine-eixo { stroke: var(--line); stroke-width: 1; }
+.vitrine-barra { fill: var(--brand); opacity: .30; transform-box: fill-box; transform-origin: bottom; }
+.vitrine-linha { fill: none; stroke: var(--brand); stroke-width: 2.5;
+  stroke-linecap: round; stroke-linejoin: round; }
+.vitrine-ponto { fill: var(--brand); }
+
+.auth-form { display: grid; place-items: center; padding: clamp(20px, 4vw, 48px); }
+.auth-form form { width: min(360px, 100%); display: flex; flex-direction: column; gap: 14px; }
+.auth-titulo { font-size: 22px; margin-top: 14px; }
+.auth-sub { margin: -8px 0 4px; }
+.auth-rodape { margin: 2px 0 0; }
+
+.campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); }
+.campo input { width: 100%; min-height: 44px; }
+.campo-senha { position: relative; display: flex; }
+.campo-senha input { padding-right: 44px; }
+.olho {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; display: grid; place-items: center;
+  background: none; border: 0; color: var(--text-2); cursor: pointer; border-radius: 8px;
+}
+.olho:hover { color: var(--text); background: var(--ink-2); }
+
+button.cta { min-height: 44px; display: inline-flex; align-items: center;
+  justify-content: center; gap: 8px; }
+.giro { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor;
+  border-top-color: transparent; }
+
+@media (max-width: 860px) {
+  /* No celular a vitrine vira faixa curta no topo; o formulario e o que importa,
+     entao a arte fica em linha de altura automatica e o form leva o resto. */
+  .auth { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .auth-arte { border-right: 0; border-bottom: 1px solid var(--line);
+    padding: 18px 20px; gap: 10px; }
+  .auth-lista { display: none; }
+  .vitrine { width: min(190px, 52%); }
+  .auth-frase { font-size: 19px; }
+  .auth-form { align-items: start; padding-top: 28px; }
+}
+
 input, button, textarea {
   font: inherit; color: var(--text); background: var(--ink-0);
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
@@ -154,6 +214,91 @@ table.dados input { padding: 4px 8px; font-size: 13px; width: 100%; }
   .rail .sair { margin-top: 0; }
   main { order: 1; padding-bottom: 8px; flex: 1; }
 }
+/* ---------- Movimento ----------
+   Um so par de tokens para tudo: entrada rapida com desaceleracao (a curva
+   quase-mola do iOS), saida ~65% do tempo. Tudo aqui e transform/opacity —
+   nada que force reflow — e o bloco inteiro morre em prefers-reduced-motion. */
+:root {
+  --dur-1: 160ms;   /* micro-interacao: hover, press */
+  --dur-2: 260ms;   /* entrada de elemento */
+  --dur-3: 420ms;   /* entrada de tela */
+  --mola: cubic-bezier(.22, 1, .36, 1);
+  --saida: cubic-bezier(.4, 0, 1, 1);
+}
+
+@keyframes pm-sobe { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pm-entra { from { opacity: 0; transform: translateY(14px) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes pm-cresce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes pm-traca { to { stroke-dashoffset: 0; } }
+@keyframes pm-pulso { 0%, 100% { r: 4.5; opacity: 1; } 50% { r: 6.5; opacity: .55; } }
+@keyframes pm-gira { to { transform: rotate(360deg); } }
+@keyframes pm-tremor { 0%,100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes pm-brilha { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+
 @media (prefers-reduced-motion: no-preference) {
-  .kpi .valor { transition: opacity .2s; }
+  /* Tela de entrada: arte primeiro, campos em cascata de 60ms. */
+  .auth-arte { animation: pm-sobe var(--dur-3) var(--mola) both; }
+  .auth-brilho { animation: pm-brilha 900ms var(--mola) both; }
+  .auth-form form > * { animation: pm-sobe var(--dur-2) var(--mola) both; }
+  .auth-form form > *:nth-child(1) { animation-delay: 60ms; }
+  .auth-form form > *:nth-child(2) { animation-delay: 120ms; }
+  .auth-form form > *:nth-child(3) { animation-delay: 180ms; }
+  .auth-form form > *:nth-child(4) { animation-delay: 240ms; }
+  .auth-form form > *:nth-child(5) { animation-delay: 300ms; }
+  .auth-form form > *:nth-child(6) { animation-delay: 360ms; }
+  .auth-lista li { animation: pm-sobe var(--dur-2) var(--mola) both; }
+  .auth-lista li:nth-child(1) { animation-delay: 420ms; }
+  .auth-lista li:nth-child(2) { animation-delay: 470ms; }
+  .auth-lista li:nth-child(3) { animation-delay: 520ms; }
+
+  /* Vitrine: barras sobem, linha se desenha por cima, ponto pulsa no fim. */
+  .vitrine-barra { animation: pm-cresce 520ms var(--mola) both; }
+  .vitrine-linha { stroke-dasharray: 260; stroke-dashoffset: 260;
+    animation: pm-traca 1s var(--mola) 700ms forwards; }
+  .vitrine-ponto { opacity: 0; animation: pm-brilha 200ms linear 1650ms forwards,
+    pm-pulso 2.6s ease-in-out 1850ms infinite; }
+
+  /* Conteudo da pagina: o main tem key={rota|cliente}, entao remonta e reanima
+     a cada troca de aba ou de cliente — o movimento diz "isto e outro dado". */
+  .tela { animation: pm-entra var(--dur-3) var(--mola) both; }
+  .kpi { animation: pm-entra var(--dur-2) var(--mola) both; }
+  .kpi:nth-child(1) { animation-delay: 40ms; }
+  .kpi:nth-child(2) { animation-delay: 80ms; }
+  .kpi:nth-child(3) { animation-delay: 120ms; }
+  .kpi:nth-child(4) { animation-delay: 160ms; }
+  .kpi:nth-child(5) { animation-delay: 200ms; }
+  /* Painel so esmaece: o Recharts mede o container na montagem e transform no
+     pai ja causou grafico desenhado fora da area — nao vale o risco. */
+  @keyframes pm-esmaece { from { opacity: 0; } to { opacity: 1; } }
+  .painel { animation: pm-esmaece var(--dur-2) ease-out both 220ms; }
+
+  .erro { animation: pm-tremor 220ms var(--saida) both; }
+  .giro { animation: pm-gira 700ms linear infinite; }
+  .alerta { animation: pm-sobe var(--dur-2) var(--mola) both; }
+}
+
+.giro { animation: pm-gira 700ms linear infinite; }  /* feedback de carga vale em qualquer modo */
+
+/* Estados: transicao curta o bastante para nao atrasar o clique. */
+.rail a, .rail .sair, .rail .tema, .chip, .link, .olho, button.cta,
+.kpi, .painel, .seletor-cliente, input, textarea {
+  transition: background-color var(--dur-1) ease-out, color var(--dur-1) ease-out,
+    border-color var(--dur-1) ease-out, transform var(--dur-1) var(--mola),
+    box-shadow var(--dur-1) ease-out;
+}
+.kpi:hover, .painel:hover { border-color: var(--ink-2); }
+button.cta:hover:not(:disabled) { filter: brightness(1.06); }
+button.cta:active:not(:disabled), .chip:active { transform: scale(.97); }
+/* Trilho: a barra laranja marca onde voce esta sem depender so da cor do texto. */
+.rail a { position: relative; }
+.rail a.on::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--brand);
+}
+table.dados tbody tr { transition: background-color var(--dur-1) ease-out; }
+table.dados tbody tr:hover { background: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

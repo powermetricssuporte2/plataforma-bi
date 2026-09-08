@@ -50,7 +50,7 @@ export default function Layout({ tema, alternarTema }) {
         {/* Chave por rota: sem isto o React reaproveita os componentes de grafico
             entre as paginas e o Recharts mantem as dimensoes da pagina anterior,
             desenhando fora da area visivel ate um F5. */}
-        <div key={`${pathname}|${cliente}`}><Outlet /></div>
+        <div className="tela" key={`${pathname}|${cliente}`}><Outlet /></div>
       </main>
     </div>
   );
